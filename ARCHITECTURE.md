@@ -16,8 +16,9 @@ A **single-table DynamoDB design** is used, since the access patterns are simple
 
 | Attribute | Type | Notes |
 |---|---|---|
-| `PK` | String (partition key) | `EVENT#<date>` for events, `PERSON#<personId>` for people |
-| `SK` | String (sort key) | `<timestamp>#<eventId>` for events, `PROFILE` for a person's current state |
+| `PK` | String (partition key) | `EVENT#<date>` for events, `PERSON#<personId>` for people, `AFORO` for the occupancy counter |
+| `SK` | String (sort key) | `<timestamp>#<eventId>` for events, `PROFILE` for a person's current state, `CURRENT` for the occupancy counter |
+| `currentOccupancy` | Number | present only on the counter item (`PK = AFORO`, `SK = CURRENT`) |
 | `eventId` | String | present on event items |
 | `personId` | String \| null | present on event items |
 | `personName` | String \| null | present on event items |
@@ -37,7 +38,7 @@ A **single-table DynamoDB design** is used, since the access patterns are simple
 | List events in a time range | `Query` on `PK = EVENT#<date>` with `SK` between two timestamps (a Global Secondary Index by full timestamp is added if the pilot needs to query across multiple days) |
 | Get/update a person's current status | `GetItem`/`UpdateItem` with `PK = PERSON#<personId>`, `SK = PROFILE` |
 | List all enrolled people + status | `Scan` filtered to `SK = PROFILE` (acceptable at this scale — a full course roster, not thousands of rows) |
-| Compute current occupancy | Count of `PERSON#*` items with `status = IN` (computed in `aforo-backend`, not in the database itself) |
+| Read/update current occupancy | `UpdateItem` on `PK = AFORO`, `SK = CURRENT` with `ADD currentOccupancy :delta` (+1 on `ENTRY`, -1 on `EXIT`, never below 0); `GetItem` to read it |
 
 ## 3. Architecture Decision Records
 
@@ -53,11 +54,19 @@ A **single-table DynamoDB design** is used, since the access patterns are simple
 **Decision**: The table is defined in code (AWS SAM template or Terraform, matching whatever `aforo-backend` uses for its own deployment) and deployed via CLI, not created manually in the AWS console.
 **Why**: reproducibility — if the pilot needs to be redeployed (e.g., a rehearsal run before the real day), the whole stack can be recreated identically.
 
+### ADR-004: Occupancy as an atomic counter item, not derived from person status
+**Decision**: Current occupancy is stored in a dedicated counter item (`AFORO` / `CURRENT`) updated atomically on every event.
+**Why**: deriving it from `PERSON#*` items with `status = IN` would silently ignore every `BODY_ONLY` event (people counted but not identified have no person profile), so the dashboard would under-count. A counter updated from every event — identified or not — matches the PRD definition (entries minus exits).
+
+### ADR-005: Provisioned capacity inside the Always Free tier
+**Decision**: The table uses `PROVISIONED` billing with 5 RCU / 5 WCU, not on-demand.
+**Why**: DynamoDB's permanent free tier covers up to 25 RCU / 25 WCU of provisioned capacity; on-demand is billed per request and is not part of that allowance. A few dozen events per pilot day fit comfortably in 5/5.
+
 ## 4. Tech stack
 
 | Layer | Choice |
 |---|---|
-| Database | AWS DynamoDB |
+| Database | AWS DynamoDB (`PROVISIONED`, 5 RCU / 5 WCU) |
 | IaC | AWS SAM template (`dynamodb.yaml`) or Terraform module — should match the tool chosen in `aforo-backend` |
 
 ## 5. Repository structure
@@ -68,8 +77,14 @@ aforo-db/
 ├── AGENTS.md
 ├── PRD.md
 ├── README.md
-└── infra/
-    └── dynamodb.yaml     # table definition (AWS SAM) or main.tf (Terraform)
+├── TASKS.md
+├── infra/
+│   └── dynamodb.yaml     # table definition (AWS SAM / CloudFormation)
+└── scripts/
+    ├── deploy.sh
+    ├── seed_people.py    # loads roster.json (personId + name, no biometrics)
+    ├── roster.example.json
+    └── reset_pilot.py    # clears events and resets counter/statuses after a rehearsal
 ```
 
 ## 6. Contract with other repos
