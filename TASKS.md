@@ -29,7 +29,7 @@ Infraestructura como código de la tabla DynamoDB `AforoPilot` que usa `aforo-ba
 ## Prioridad 1 — Crítico
 
 ### Task 1 — Inicializar el repositorio
-- [ ] **1.1** `chore: init repo structure` — Carpetas `infra/` y `scripts/`, `README.md`, `.gitignore` (excluir `roster.json` real).
+- [x] **1.1** `chore: init repo structure` — Carpetas `infra/` y `scripts/`, `README.md`, `.gitignore` (excluir `roster.json` real).
 - [x] **1.2** `docs: add PRD, ARCHITECTURE and AGENTS` — Subir los documentos a la raíz.
 
 ### Task 2 — Definir la tabla

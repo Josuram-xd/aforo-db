@@ -1,0 +1,23 @@
+# Roster real del piloto (contiene nombres de personas). Solo se versiona roster.example.json
+roster.json
+scripts/roster.json
+
+# Credenciales y variables de entorno locales
+.env
+.env.*
+
+# Artefactos de AWS SAM / CloudFormation
+.aws-sam/
+packaged*.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editores y sistema operativo
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
