@@ -20,13 +20,14 @@ A **single-table DynamoDB design** is used, since the access patterns are simple
 | `SK` | String (sort key) | `<timestamp>#<eventId>` for events, `PROFILE` for a person's current state, `CURRENT` for the occupancy counter |
 | `currentOccupancy` | Number | present only on the counter item (`PK = AFORO`, `SK = CURRENT`) |
 | `eventId` | String | present on event items |
-| `personId` | String \| null | present on event items |
+| `personId` | String \| null | present on event items; String on person profile items |
 | `personName` | String \| null | present on event items |
 | `direction` | String (`ENTRY` \| `EXIT`) | present on event items |
 | `cameraOutsideId` / `cameraInsideId` | String | present on event items |
 | `confidence` | Number | present on event items |
 | `method` | String (`FACE` \| `BODY_ONLY`) | present on event items |
 | `timestamp` | String (ISO 8601) | present on event items |
+| `name` | String | present on person profile items (from the roster, no biometrics) |
 | `status` | String (`IN` \| `OUT`) | present on person profile items |
 | `lastEventAt` | String (ISO 8601) | present on person profile items |
 
