@@ -33,7 +33,7 @@ Infraestructura como código de la tabla DynamoDB `AforoPilot` que usa `aforo-ba
 - [x] **1.2** `docs: add PRD, ARCHITECTURE and AGENTS` — Subir los documentos a la raíz.
 
 ### Task 2 — Definir la tabla
-- [ ] **2.1** `feat(infra): define aforo pilot table` — `infra/dynamodb.yaml`: tabla `AforoPilot` con `PK`/`SK` de tipo String, `BillingMode: PROVISIONED`, 5 RCU / 5 WCU (dentro del Always Free).
+- [x] **2.1** `feat(infra): define aforo pilot table` — `infra/dynamodb.yaml`: tabla `AforoPilot` con `PK`/`SK` de tipo String, `BillingMode: PROVISIONED`, 5 RCU / 5 WCU (dentro del Always Free).
 - [ ] **2.2** `feat(infra): export table name and arn` — `Outputs` con `Export` `AforoPilotTableName` y `AforoPilotTableArn` para que `aforo-backend` los importe.
 - [ ] **2.3** `chore(scripts): add deploy script` — `scripts/deploy.sh` que corre `aws cloudformation deploy` con el nombre del stack y la región.
 

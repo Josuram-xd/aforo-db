@@ -1,0 +1,31 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  aforo-db - Tabla DynamoDB AforoPilot (diseño de tabla única) para el piloto de aforo.
+  Guarda eventos de entrada/salida, el estado de las personas enroladas y el contador de aforo.
+
+Resources:
+  AforoPilotTable:
+    Type: AWS::DynamoDB::Table
+    # Conserva la tabla (y los datos del piloto) si se borra o reemplaza el stack.
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: AforoPilot
+      # PK: EVENT#<date> | PERSON#<personId> | AFORO
+      # SK: <timestamp>#<eventId> | PROFILE | CURRENT
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      # Capacidad aprovisionada dentro del nivel Always Free (hasta 25 RCU / 25 WCU).
+      # On-demand (PAY_PER_REQUEST) no entra en ese nivel; ver ADR-005.
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
