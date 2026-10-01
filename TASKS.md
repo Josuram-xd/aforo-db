@@ -39,7 +39,7 @@ Infraestructura como código de la tabla DynamoDB `AforoPilot` que usa `aforo-ba
 
 ### Task 3 — Desplegar **[HITO SEPT]**
 - [x] **3.1** `feat(infra): add monthly budget alarm` — `infra/budget.yaml` con una alerta de AWS Budgets a partir de 1 USD que avise al correo. Protege los créditos de la cuenta nueva.
-- [ ] **3.2** `docs: add aws setup and deploy steps to readme` — Cómo configurar el AWS CLI, desplegar y verificar la tabla.
+- [x] **3.2** `docs: add aws setup and deploy steps to readme` — Cómo configurar el AWS CLI, desplegar y verificar la tabla.
 - [ ] **3.3** (sin commit) Correr `scripts/deploy.sh` y confirmar en la consola que la tabla y los exports existen.
 
 ### Task 4 — Roster y limpieza del piloto
