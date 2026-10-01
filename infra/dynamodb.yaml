@@ -29,3 +29,16 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
+
+# Exports que aforo-backend importa con Fn::ImportValue para leer/escribir la tabla.
+Outputs:
+  AforoPilotTableName:
+    Description: Nombre de la tabla DynamoDB del piloto.
+    Value: !Ref AforoPilotTable
+    Export:
+      Name: AforoPilotTableName
+  AforoPilotTableArn:
+    Description: ARN de la tabla DynamoDB del piloto.
+    Value: !GetAtt AforoPilotTable.Arn
+    Export:
+      Name: AforoPilotTableArn
