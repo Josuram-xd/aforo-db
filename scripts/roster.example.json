@@ -1,0 +1,5 @@
+[
+  { "personId": "p001", "name": "Persona Ejemplo Uno" },
+  { "personId": "p002", "name": "Persona Ejemplo Dos" },
+  { "personId": "p003", "name": "Persona Ejemplo Tres" }
+]

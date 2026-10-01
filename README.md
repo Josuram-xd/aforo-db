@@ -37,7 +37,7 @@ Todo se despliega con CloudFormation en la región `us-east-1` (la misma de `afo
    ```bash
    aws --version
    ```
-2. En la consola de AWS, crea un usuario de IAM con access keys para usar desde la terminal. No uses las claves del usuario root.
+2. Si todavía no tienes un usuario de IAM con access keys, créalo en la consola de AWS (con permisos sobre CloudFormation, DynamoDB y Budgets). No uses las claves del usuario root. Si ya tienes uno configurado (por ejemplo, el que usas para `aforo-backend`), reutilízalo y salta al paso 4.
 3. Configura las credenciales y la región:
    ```bash
    aws configure
@@ -77,7 +77,7 @@ Al terminar, el script imprime los outputs del stack de la tabla. También puede
 ```bash
 # La tabla existe y está activa
 aws dynamodb describe-table --table-name AforoPilot --region us-east-1 \
-  --query "Table.[TableStatus, BillingModeSummary.BillingMode, ProvisionedThroughput]"
+  --query "Table.[TableStatus, ProvisionedThroughput.ReadCapacityUnits, ProvisionedThroughput.WriteCapacityUnits]"
 
 # Los exports que usa aforo-backend
 aws cloudformation list-exports --region us-east-1 \

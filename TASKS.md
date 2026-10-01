@@ -40,10 +40,10 @@ Infraestructura como código de la tabla DynamoDB `AforoPilot` que usa `aforo-ba
 ### Task 3 — Desplegar **[HITO SEPT]**
 - [x] **3.1** `feat(infra): add monthly budget alarm` — `infra/budget.yaml` con una alerta de AWS Budgets a partir de 1 USD que avise al correo. Protege los créditos de la cuenta nueva.
 - [x] **3.2** `docs: add aws setup and deploy steps to readme` — Cómo configurar el AWS CLI, desplegar y verificar la tabla.
-- [ ] **3.3** (sin commit) Correr `scripts/deploy.sh` y confirmar en la consola que la tabla y los exports existen.
+- [x] **3.3** (sin commit) Correr `scripts/deploy.sh` y confirmar en la consola que la tabla y los exports existen.
 
 ### Task 4 — Roster y limpieza del piloto
-- [ ] **4.1** `feat(scripts): add roster example file` — `scripts/roster.example.json` con `personId` y `name` de ejemplo (sin embeddings ni fotos).
+- [x] **4.1** `feat(scripts): add roster example file` — `scripts/roster.example.json` con `personId` y `name` de ejemplo (sin embeddings ni fotos).
 - [ ] **4.2** `feat(scripts): add seed people script` — `scripts/seed_people.py`: función `seed(roster_path)` que crea `PERSON#<id>` / `PROFILE` con `status = OUT` por cada persona. Para el roster real: Seguir con la task 5 del repo: `aforo-vision` (genera `roster.json` en la 5.2).
 - [ ] **4.3** `feat(scripts): add reset pilot script` — `scripts/reset_pilot.py`: borra los eventos, pone el contador `AFORO` / `CURRENT` en 0 y todas las personas en `OUT`. Se usa después del ensayo, antes del día real.
 
