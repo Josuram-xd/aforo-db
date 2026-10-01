@@ -38,7 +38,7 @@ Infraestructura como código de la tabla DynamoDB `AforoPilot` que usa `aforo-ba
 - [x] **2.3** `chore(scripts): add deploy script` — `scripts/deploy.sh` que corre `aws cloudformation deploy` con el nombre del stack y la región.
 
 ### Task 3 — Desplegar **[HITO SEPT]**
-- [ ] **3.1** `feat(infra): add monthly budget alarm` — `infra/budget.yaml` con una alerta de AWS Budgets a partir de 1 USD que avise al correo. Protege los créditos de la cuenta nueva.
+- [x] **3.1** `feat(infra): add monthly budget alarm` — `infra/budget.yaml` con una alerta de AWS Budgets a partir de 1 USD que avise al correo. Protege los créditos de la cuenta nueva.
 - [ ] **3.2** `docs: add aws setup and deploy steps to readme` — Cómo configurar el AWS CLI, desplegar y verificar la tabla.
 - [ ] **3.3** (sin commit) Correr `scripts/deploy.sh` y confirmar en la consola que la tabla y los exports existen.
 

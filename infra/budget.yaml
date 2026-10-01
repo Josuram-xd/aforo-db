@@ -1,0 +1,36 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >-
+  aforo-db - Alerta mensual de AWS Budgets: avisa por correo cuando el gasto real
+  de la cuenta supera 1 USD, para proteger los créditos de la cuenta nueva.
+
+Parameters:
+  NotificationEmail:
+    Type: String
+    Description: Correo que recibe la alerta de presupuesto.
+    AllowedPattern: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+    ConstraintDescription: Debe ser un correo válido.
+
+Resources:
+  MonthlyBudget:
+    Type: AWS::Budgets::Budget
+    Properties:
+      Budget:
+        BudgetName: aforo-monthly-budget
+        BudgetType: COST
+        TimeUnit: MONTHLY
+        BudgetLimit:
+          Amount: 1
+          Unit: USD
+        # Cuenta el gasto antes de aplicar créditos; si no, los créditos lo dejarían
+        # en 0 USD y la alerta nunca sonaría mientras se consumen.
+        CostTypes:
+          IncludeCredit: false
+      NotificationsWithSubscribers:
+        - Notification:
+            NotificationType: ACTUAL
+            ComparisonOperator: GREATER_THAN
+            Threshold: 100
+            ThresholdType: PERCENTAGE
+          Subscribers:
+            - SubscriptionType: EMAIL
+              Address: !Ref NotificationEmail
