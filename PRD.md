@@ -27,7 +27,7 @@ Definir y aprovisionar (como infraestructura como código) la base de datos que 
 1. Guardar cada evento resuelto (`eventId`, `personId`, `direction`, cámaras, `confidence`, `method`, `timestamp`).
 2. Permitir consultar eventos por rango de tiempo (`from`/`to`).
 3. Guardar el roster de personas enroladas (`personId`, `name`) junto con su estado actual (`IN`/`OUT`) y el timestamp de su último evento.
-4. Permitir calcular el aforo actual (conteo de personas con estado `IN`) de forma eficiente.
+4. Permitir leer y actualizar el aforo actual de forma eficiente, como un contador atómico (entradas − salidas) que incluye también a las personas no identificadas (`BODY_ONLY`). No se deriva del conteo de personas con estado `IN` (ver ADR-004 en `ARCHITECTURE.md`).
 
 ## 6. Restricciones
 

@@ -19,7 +19,7 @@ Infraestructura como código de la tabla DynamoDB `AforoPilot` que usa `aforo-ba
 | A — Arranque (en paralelo) | 1-3 | 1-2 | 1-3 | 1-2 |
 | B — Núcleo | 4 | 3-7 | 4-6 | 3-5 (con datos mock) |
 | C — Integración | — | — | 7 | 6 |
-| D — Ensayo y ajustes | 5 | 8-9 | 8-11 | 7-8 |
+| D — Ensayo y ajustes | 5 | 8-9, 11 (login) | 8-11 | 7-8, 11 (login) |
 | E — Extras | 6 | 10 | 12-13 | 9-10 |
 
 **Hito fin de septiembre:** fase A completa → aquí, la tabla desplegada en AWS (task 3). Este repo es el primero que debe estar listo porque `aforo-backend` lo necesita desde su task 4.

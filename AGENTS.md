@@ -8,6 +8,16 @@ Este archivo le dice a los asistentes de IA cómo comportarse dentro de este rep
 
 Antes de proponer cambios, lee `PRD.md` y `ARCHITECTURE.md` (en inglés), especialmente el diseño de tabla única (single-table design) y los patrones de acceso ya definidos.
 
+## Reglas de git (obligatorias, sin excepciones)
+
+1. **Ninguna IA puede hacer commit ni push.** Ningún asistente (Claude Code, Cursor, Copilot, Codex, Gemini, etc.) ejecuta `git commit`, `git push`, `git merge`, `git rebase`, `git tag` ni `git reset`, ni crea o fusiona PRs, ni por terminal ni por herramientas MCP/API de GitHub. El agente deja los cambios en el árbol de trabajo y, si ayuda, **propone** el mensaje de commit (formato de `TASKS.md`); el commit y el push los hace siempre una persona.
+2. **Nadie puede tener `Co-Authored-By` de una IA.** Ningún commit ni PR puede incluir líneas `Co-Authored-By: Claude ...` (ni de ninguna otra IA), `noreply@anthropic.com` ni "Generated with Claude Code". Esto aplica también a las personas: si el mensaje propuesto trae esa línea, se borra antes de commitear.
+3. **Cómo se hace cumplir:**
+   - `.githooks/commit-msg` rechaza localmente esos mensajes. Actívalo una vez por clon: `git config core.hooksPath .githooks`.
+   - `.github/workflows/no-ai-coauthor.yml` falla en GitHub si algún commit del historial los tiene.
+   - `.claude/settings.json` desactiva la coautoría automática de Claude Code y le bloquea `git commit`/`git push`.
+   No desactives ni modifiques estos tres archivos sin que el usuario lo pida explícitamente.
+
 ## Reglas para el agente
 
 1. **No crees recursos manualmente en la consola de AWS.** Todo cambio a la base de datos debe expresarse como código (plantilla SAM o Terraform) en `infra/`, para que sea reproducible.

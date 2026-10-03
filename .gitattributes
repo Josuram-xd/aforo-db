@@ -1,2 +1,4 @@
 # Los scripts de shell siempre con saltos de línea LF (bash falla con CRLF).
 *.sh text eol=lf
+# Los hooks de git deben tener saltos de línea LF.
+.githooks/* text eol=lf

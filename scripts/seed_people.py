@@ -14,6 +14,7 @@ Por defecto lee scripts/roster.json. Variables opcionales: TABLE_NAME
 import json
 import os
 import sys
+import uuid
 from pathlib import Path
 
 TABLE_NAME = os.environ.get("TABLE_NAME", "AforoPilot")
@@ -36,6 +37,12 @@ def load_roster(roster_path):
         name = entry.get("name") if isinstance(entry, dict) else None
         if not isinstance(person_id, str) or not person_id.strip():
             raise ValueError(f"Persona #{i}: falta personId o no es texto.")
+        # El contrato de eventos (aforo-backend) define personId como UUID: un id como
+        # "p001" se guardaría aquí, pero aforo-backend rechazaría sus eventos con 400.
+        try:
+            uuid.UUID(person_id)
+        except ValueError:
+            raise ValueError(f"Persona #{i}: personId debe ser un UUID, no {person_id!r}.") from None
         if not isinstance(name, str) or not name.strip():
             raise ValueError(f"Persona #{i} ({person_id}): falta name o no es texto.")
         if person_id in seen:
