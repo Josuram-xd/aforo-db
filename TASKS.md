@@ -45,7 +45,7 @@ Infraestructura como código de la tabla DynamoDB `AforoPilot` que usa `aforo-ba
 ### Task 4 — Roster y limpieza del piloto
 - [x] **4.1** `feat(scripts): add roster example file` — `scripts/roster.example.json` con `personId` y `name` de ejemplo (sin embeddings ni fotos).
 - [x] **4.2** `feat(scripts): add seed people script` — `scripts/seed_people.py`: función `seed(roster_path)` que crea `PERSON#<id>` / `PROFILE` con `status = OUT` por cada persona. Para el roster real: Seguir con la task 5 del repo: `aforo-vision` (genera `roster.json` en la 5.2).
-- [ ] **4.3** `feat(scripts): add reset pilot script` — `scripts/reset_pilot.py`: borra los eventos, pone el contador `AFORO` / `CURRENT` en 0 y todas las personas en `OUT`. Se usa después del ensayo, antes del día real.
+- [x] **4.3** `feat(scripts): add reset pilot script` — `scripts/reset_pilot.py`: borra los eventos, pone el contador `AFORO` / `CURRENT` en 0 y todas las personas en `OUT`. Se usa después del ensayo, antes del día real.
 
 ---
 
