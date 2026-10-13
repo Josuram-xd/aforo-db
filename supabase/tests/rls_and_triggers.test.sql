@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(36);
+select plan(39);
 
 -- ---------------------------------------------------------------------------
 -- Datos de prueba: un salón con aforo 1, sus cámaras, una llave, un estudiante y cuatro cuentas
@@ -172,6 +172,28 @@ select is((select count(*)::int from public.audit_log
             where action = 'ACCOUNT_DEACTIVATE' and record_id = '00000000-0000-4000-8000-0000000000a3'
               and actor_id = '00000000-0000-4000-8000-0000000000a1'),
           1, 'la desactivación queda en audit_log como ACCOUNT_DEACTIVATE');
+
+-- ---------------------------------------------------------------------------
+-- Columnas de actor: no se pueden falsificar desde la API
+-- ---------------------------------------------------------------------------
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-8000-0000000000a2","role":"authenticated"}';
+update public.alerts set resolved_at = '2000-01-01', resolved_by = null
+ where camera_id in (select id from public.cameras where classroom_id = '00000000-0000-4000-8000-0000000000c1')
+   and resolved_at is null;
+select throws_ok($$update public.alerts set resolved_at = null
+                    where camera_id in (select id from public.cameras where classroom_id = '00000000-0000-4000-8000-0000000000c1')$$,
+                 '22023', null, 'una alerta resuelta no se puede reabrir');
+insert into public.class_sessions (course_id, classroom_id, title, starts_at, ends_at, created_by)
+select (select id from public.courses limit 1), '00000000-0000-4000-8000-0000000000c1', 'Sesión de prueba',
+       now(), now() + interval '1 hour', '00000000-0000-4000-8000-0000000000a1';
+reset role;
+select is((select resolved_by from public.alerts a join public.cameras c on c.id = a.camera_id
+            where c.classroom_id = '00000000-0000-4000-8000-0000000000c1' and a.type = 'camera_offline'),
+          '00000000-0000-4000-8000-0000000000a2'::uuid, 'resolver una alerta la firma con el usuario actual');
+select is((select created_by from public.class_sessions where title = 'Sesión de prueba'),
+          '00000000-0000-4000-8000-0000000000a2'::uuid, 'una sesión nueva queda a nombre de quien la crea');
 
 select * from finish();
 rollback;
