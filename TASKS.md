@@ -24,6 +24,19 @@ Infraestructura como código de la tabla DynamoDB `AforoPilot` que usa `aforo-ba
 
 **Hito fin de septiembre:** fase A completa → aquí, la tabla desplegada en AWS (task 3). Este repo es el primero que debe estar listo porque `aforo-backend` lo necesita desde su task 4.
 
+### Versión 2 (después de la primera entrega, octubre 2026)
+
+Retroalimentación del profe: pocas tablas, sin registro ni login, endpoints públicos, AWS sin protección contra abuso y un frontend muy básico. La v2 pasa los datos y el login a **Supabase** (PostgreSQL + Auth con Google + RLS + Realtime). Detalle en la sección "Version 2" de cada `ARCHITECTURE.md`.
+
+| Fase | aforo-db | aforo-backend | aforo-vision | aforo-frontend |
+|---|---|---|---|---|
+| F — Base v2 | 7 | 12.1-12.2 | — | 12 |
+| G — Login, seguridad e integración | 8 | 13 | 14 | 13 |
+| H — Producto | 9 | — | 15 (evaluar visión en la nube) | 14-15 |
+| I — Cierre | 10 | 12.3-12.4 | 15.3-15.6, 16 | 16 |
+
+Las tareas v1 que la v2 reemplaza quedan marcadas con ~~tachado~~ y una nota; no se borran para conservar el historial.
+
 ---
 
 ## Prioridad 1 — Crítico
@@ -52,11 +65,48 @@ Infraestructura como código de la tabla DynamoDB `AforoPilot` que usa `aforo-ba
 ## Prioridad 2 — Importante
 
 ### Task 5 — Retención de datos (privacidad)
-- [ ] **5.1** `feat(infra): enable ttl on expires at attribute` — Activar TTL sobre `expiresAt` para que los eventos (que tienen nombres) se borren solos unos días después del piloto (principio de mínima retención, Ley 1581). Después sigue con la task 9.3 del repo: `aforo-backend`.
+- [ ] ~~**5.1** `feat(infra): enable ttl on expires at attribute` — Activar TTL sobre `expiresAt` para que los eventos (que tienen nombres) se borren solos unos días después del piloto (principio de mínima retención, Ley 1581). Después sigue con la task 9.3 del repo: `aforo-backend`.~~ → reemplazada por la task 9.1 (v2).
 
 ---
 
 ## Prioridad 3 — Extras
 
 ### Task 6 — Consultas de varios días
-- [ ] **6.1** `feat(infra): add gsi on timestamp` — Índice secundario global por `timestamp`. Solo si el piloto termina durando más de un día.
+- [ ] ~~**6.1** `feat(infra): add gsi on timestamp` — Índice secundario global por `timestamp`. Solo si el piloto termina durando más de un día.~~ → innecesaria en v2 (PostgreSQL consulta por rango con el índice `events_classroom_occurred_idx`).
+
+---
+
+## Versión 2 — Supabase (PostgreSQL relacional)
+
+> Ver `ARCHITECTURE.md` sección 7. Hay un **borrador sin probar** de las migraciones en `supabase/migrations/` (escrito el 8 oct 2026): las tasks 7.2-7.7 consisten en revisarlo, probarlo y commitearlo por partes.
+
+### Task 7 — Proyecto y esquema **(Prioridad 1)**
+- [ ] **7.1** (sin commit) Crear el proyecto `aforo` en una cuenta de Supabase **del equipo** (las cuentas personales ya tienen sus 2 proyectos gratis), región `us-east-1`, e invitar a los demás con rol **Developer**. Guardar la URL del proyecto; la `service_role` key nunca va a git.
+- [ ] **7.2** `feat(db): add relational schema with 13 tables` — `supabase/migrations/..._schema.sql`: `roles`, `profiles`, `user_roles`, `courses`, `classrooms`, `cameras`, `students`, `course_students`, `class_sessions`, `events`, `attendance`, `alerts`, `audit_log` + `private.device_keys`, con llaves foráneas, `check` e índices.
+- [ ] **7.3** `feat(db): add occupancy attendance and alert triggers` — Trigger `apply_event`: aforo atómico (nunca < 0), `presence` del estudiante, fila de `attendance` de la sesión y alerta `capacity_exceeded`.
+- [ ] **7.4** `feat(db): add device ingest and heartbeat rpcs` — `ingest_event(p_event)` (llave `X-Device-Key` + límite de 120 peticiones/min, mismo contrato de evento que v1, idempotente por `eventId`) y `camera_heartbeat(code, online)` con alertas `camera_offline`.
+- [ ] **7.5** `feat(auth): create profile and viewer role on sign up` — Trigger sobre `auth.users`; RPCs de admin `set_user_role` y `set_user_active`.
+- [ ] **7.6** `feat(db): add audit log triggers and log access rpc` — `audit_change` en las tablas de catálogo y `log_access` para LOGIN/VIEW/EXPORT desde el frontend.
+- [ ] **7.7** `feat(security): enable rls with role policies` — RLS en todas las tablas, `anon` sin acceso a tablas, permisos por rol (`viewer` sin nombres de estudiantes). Realtime para `events`, `classrooms`, `cameras`, `alerts`.
+- [ ] **7.8** `feat(db): seed roles course classroom and cameras` — Los 3 roles, 1 curso, 1 salón (aforo máximo configurable) y sus 2 cámaras (`camera-outside`, `camera-inside`).
+- [ ] **7.9** (sin commit) Aplicar las migraciones al proyecto y correr los advisors de seguridad y rendimiento de Supabase: cero errores.
+
+### Task 8 — Datos, llaves y pruebas **(Prioridad 1)**
+> Depende de: task 7.
+
+- [ ] **8.1** `feat(scripts): add seed students script` — `scripts/seed_students.py`: carga `roster.json` (de `aforo-vision` task 5.2) en `students` y `course_students`, conservando el `personId` como `id`. Usa la `service_role` key desde variable de entorno. Reemplaza a `seed_people.py`.
+- [ ] **8.2** `feat(scripts): add create device key script` — `scripts/create_device_key.py <salón>`: genera una llave aleatoria, guarda solo su hash SHA-256 en `private.device_keys` y la muestra **una sola vez** para configurarla en `aforo-vision`. Opción `--revoke`.
+- [ ] **8.3** `feat(scripts): port reset pilot script to supabase` — Borra eventos, asistencia y alertas de prueba, pone el aforo en 0 y a todos en `OUT`. Pide escribir `BORRAR`.
+- [ ] **8.4** `test(db): add pgtap tests for rls and triggers` — `supabase/tests/`: `viewer` no ve estudiantes, `anon` no ve nada, `ingest_event` rechaza llave inválida y no duplica, el aforo no baja de 0, la alerta de aforo se abre y se cierra. Se corren con `supabase test db`.
+- [ ] **8.5** `docs: rewrite readme for supabase` — Crear proyecto, aplicar migraciones (`supabase db push`), cargar estudiantes, crear la llave del salón, promover al primer admin.
+
+### Task 9 — Retención de datos **(Prioridad 2)**
+- [ ] **9.1** `feat(db): purge old events with pg cron` — Job diario de `pg_cron` que borra eventos y asistencia con más de N días (mínima retención, Ley 1581). Reemplaza la task 5.1.
+- [ ] **9.2** `feat(db): add daily summary view` — Vista `daily_occupancy_summary` (entradas, salidas, % identificado por rostro, pico de aforo por día) para las gráficas del frontend.
+
+### Task 10 — Retirar DynamoDB **(Prioridad 3)**
+> Depende de: `aforo-vision` task 14 y `aforo-frontend` task 16 funcionando contra Supabase.
+
+- [ ] **10.1** (sin commit) Exportar los eventos de v1 que se quieran conservar para el informe.
+- [ ] **10.2** (sin commit) Borrar el stack de la tabla `AforoPilot` (confirmar antes: borra los datos de v1). Mantener la alerta de presupuesto.
+- [ ] **10.3** `chore: remove dynamodb templates and scripts` — Quitar `infra/dynamodb.yaml`, `seed_people.py` y `reset_pilot.py` de v1; actualizar `ARCHITECTURE.md`.
