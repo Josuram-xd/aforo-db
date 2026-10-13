@@ -83,7 +83,7 @@ Las tareas v1 que la v2 reemplaza quedan marcadas con ~~tachado~~ y una nota; no
 ### Task 7 — Proyecto y esquema **(Prioridad 1)**
 - [x] **7.1** (sin commit) Crear el proyecto `aforo` en una cuenta de Supabase **del equipo** (las cuentas personales ya tienen sus 2 proyectos gratis), región `us-east-1`, e invitar a los demás con rol **Developer**. Guardar la URL del proyecto; la `service_role` key nunca va a git.
 - [x] **7.2** `feat(db): add relational schema with 13 tables` — `supabase/migrations/..._schema.sql`: `roles`, `profiles`, `user_roles`, `courses`, `classrooms`, `cameras`, `students`, `course_students`, `class_sessions`, `events`, `attendance`, `alerts`, `audit_log` + `private.device_keys`, con llaves foráneas, `check` e índices.
-- [ ] **7.3** `feat(db): add occupancy attendance and alert triggers` — Trigger `apply_event`: aforo atómico (nunca < 0), `presence` del estudiante, fila de `attendance` de la sesión y alerta `capacity_exceeded`.
+- [x] **7.3** `feat(db): add occupancy attendance and alert triggers` — Trigger `apply_event`: aforo atómico (nunca < 0), `presence` del estudiante, fila de `attendance` de la sesión y alerta `capacity_exceeded`.
 - [ ] **7.4** `feat(db): add device ingest and heartbeat rpcs` — `ingest_event(p_event)` (llave `X-Device-Key` + límite de 120 peticiones/min, mismo contrato de evento que v1, idempotente por `eventId`) y `camera_heartbeat(code, online)` con alertas `camera_offline`.
 - [ ] **7.5** `feat(auth): create profile and viewer role on sign up` — Trigger sobre `auth.users`; RPCs de admin `set_user_role` y `set_user_active`.
 - [ ] **7.6** `feat(db): add audit log triggers and log access rpc` — `audit_change` en las tablas de catálogo y `log_access` para LOGIN/VIEW/EXPORT desde el frontend.
