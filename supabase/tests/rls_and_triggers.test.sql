@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(23);
+select plan(28);
 
 -- ---------------------------------------------------------------------------
 -- Datos de prueba: un salón con aforo 1, sus cámaras, una llave, un estudiante y cuatro cuentas
@@ -117,6 +117,28 @@ set local request.jwt.claims = '{"sub":"00000000-0000-4000-8000-0000000000a4","r
 select is((select count(*)::int from public.classrooms), 0, 'una cuenta desactivada no ve nada');
 
 reset role;
+
+-- ---------------------------------------------------------------------------
+-- Cámaras sin latido: el job de pg_cron las marca offline y abre la alerta
+-- ---------------------------------------------------------------------------
+
+update public.cameras set status = 'online', last_seen_at = now() - interval '5 minutes'
+ where classroom_id = '00000000-0000-4000-8000-0000000000c1' and code = 'camera-outside';
+update public.cameras set status = 'online', last_seen_at = now()
+ where classroom_id = '00000000-0000-4000-8000-0000000000c1' and code = 'camera-inside';
+select ok(private.mark_stale_cameras_offline(90) >= 1, 'el job marca offline las cámaras sin latido reciente');
+select is((select status from public.cameras
+            where classroom_id = '00000000-0000-4000-8000-0000000000c1' and code = 'camera-outside'),
+          'offline', 'la cámara sin latido queda offline');
+select is((select status from public.cameras
+            where classroom_id = '00000000-0000-4000-8000-0000000000c1' and code = 'camera-inside'),
+          'online', 'la cámara con latido reciente sigue online');
+select is((select count(*)::int from public.alerts a join public.cameras c on c.id = a.camera_id
+            where c.classroom_id = '00000000-0000-4000-8000-0000000000c1' and a.type = 'camera_offline'
+              and a.resolved_at is null),
+          1, 'se abre una alerta camera_offline por la cámara sin latido');
+select ok(exists (select 1 from cron.job where jobname = 'mark-stale-cameras-offline'),
+          'el job mark-stale-cameras-offline está programado');
 
 select * from finish();
 rollback;
