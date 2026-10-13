@@ -1,95 +1,139 @@
 # aforo-db
 
-Infraestructura como código de la tabla DynamoDB `AforoPilot` que usa `aforo-backend` para guardar los eventos de entrada/salida, el estado de las personas enroladas y el contador de aforo del piloto.
+Infraestructura como código de la base de datos del sistema de aforo.
 
-Este repositorio **no** contiene lógica de negocio: solo la definición de la tabla y scripts de apoyo para desplegarla y preparar los datos del piloto.
+- **v2 (actual): PostgreSQL en Supabase.** Esquema relacional de 13 tablas, login con Supabase Auth, Row Level Security por rol, Realtime y las RPCs que usa `aforo-vision` para enviar eventos. Todo vive como migraciones SQL en `supabase/migrations/`.
+- **v1 (legado):** tabla DynamoDB `AforoPilot` en AWS. Sigue desplegada hasta la task 10 (ver "Legado v1" al final).
+
+Este repositorio **no** contiene lógica de aplicación: solo el esquema, sus funciones/políticas y scripts de administración.
 
 ## Estructura
 
 ```
 aforo-db/
-├── infra/      # plantillas CloudFormation / SAM (tabla, alerta de presupuesto)
-├── scripts/    # despliegue, carga del roster y reinicio del piloto
-├── PRD.md
-├── ARCHITECTURE.md
-├── AGENTS.md
-└── TASKS.md
+├── supabase/
+│   ├── migrations/   # esquema, triggers, RPCs, RLS y datos base (en orden de aplicación)
+│   └── tests/        # pruebas pgTAP (supabase test db)
+├── scripts/          # cargar estudiantes, llaves de dispositivo, reiniciar el piloto (+ scripts v1)
+├── infra/            # v1: plantillas CloudFormation (tabla DynamoDB, alerta de presupuesto)
+├── PRD.md · ARCHITECTURE.md (sección 7 = v2) · AGENTS.md · TASKS.md
 ```
 
-## Documentación
+## Privacidad y seguridad
 
-- [`PRD.md`](PRD.md) — problema, objetivos y restricciones.
-- [`ARCHITECTURE.md`](ARCHITECTURE.md) — diseño de tabla única, patrones de acceso y ADRs.
-- [`AGENTS.md`](AGENTS.md) — reglas para asistentes de IA en este repo.
-- [`TASKS.md`](TASKS.md) — plan de trabajo y estado de las tareas.
+- El roster real (`roster.json`) tiene nombres de personas y **no se versiona**. Plantilla: `scripts/roster.example.json`.
+- En la base de datos **no hay datos biométricos** (los embeddings nunca salen del nodo de visión) ni contraseñas: las contraseñas las maneja solo Supabase Auth.
+- La llave `service_role` (o `sb_secret_...`) salta RLS: úsala solo en tu máquina, por variable de entorno, **nunca** en git ni en el frontend. El frontend y `aforo-vision` usan solo la *publishable key*.
+- La llave de dispositivo de cada salón se guarda solo como hash SHA-256.
 
-## Privacidad
+## Puesta en marcha (v2, Supabase)
 
-El roster real (`roster.json`) contiene nombres de personas y **no se versiona** (está en `.gitignore`). Usa `scripts/roster.example.json` como plantilla.
+### 1. Crear el proyecto
 
-## Despliegue
+En una cuenta de Supabase **del equipo**: proyecto `aforo`, región `us-east-1`, plan Free. Invita al resto del equipo con rol **Developer**. Anota la URL del proyecto (`https://<ref>.supabase.co`).
 
-Todo se despliega con CloudFormation en la región `us-east-1` (la misma de `aforo-backend`, para que pueda importar los exports). No crees nada a mano en la consola de AWS.
+### 2. Aplicar las migraciones
 
-### 1. Configurar el AWS CLI
+Con el [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started):
 
-1. Instala el [AWS CLI v2](https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html) y comprueba la instalación:
-   ```bash
-   aws --version
-   ```
-2. Si todavía no tienes un usuario de IAM con access keys, créalo en la consola de AWS (con permisos sobre CloudFormation, DynamoDB y Budgets). No uses las claves del usuario root. Si ya tienes uno configurado (por ejemplo, el que usas para `aforo-backend`), reutilízalo y salta al paso 4.
-3. Configura las credenciales y la región:
-   ```bash
-   aws configure
-   # AWS Access Key ID:     <tu access key>
-   # AWS Secret Access Key: <tu secret key>
-   # Default region name:   us-east-1
-   # Default output format: json
-   ```
-4. Verifica que el CLI apunta a la cuenta correcta:
-   ```bash
-   aws sts get-caller-identity
-   ```
+```bash
+supabase login
+supabase init                      # solo la primera vez, si no existe supabase/config.toml
+supabase link --project-ref <ref>
+supabase db push                   # aplica supabase/migrations/ en orden
+```
 
-En Windows, ejecuta los comandos de bash desde **Git Bash**.
+Las migraciones crean, en este orden: el esquema con RLS activado y sin permisos; los triggers de aforo/asistencia/alertas; las RPCs del nodo de visión (`ingest_event`, `camera_heartbeat`); perfil y rol `viewer` al registrarse + RPCs de admin; auditoría; políticas RLS y Realtime; los datos base (3 roles, el curso `PILOTO-AFORO`, el salón `Salón del piloto` con aforo 30 y sus cámaras `camera-outside` / `camera-inside`); y las RPCs de administración que usan los scripts.
 
-### 2. Desplegar
+Después corre los advisors (**Dashboard → Advisors**, seguridad y rendimiento): no debe haber errores.
+
+### 3. Pruebas
+
+```bash
+supabase test db                   # requiere Docker (stack local)
+```
+
+`supabase/tests/rls_and_triggers.test.sql` comprueba que `anon` no ve nada, que `viewer` no ve estudiantes, que una cuenta desactivada pierde el acceso, que `ingest_event` rechaza llaves inválidas y no duplica reintentos, que el aforo no baja de 0 y que la alerta de aforo se abre y se cierra.
+
+### 4. Variables de entorno para los scripts
+
+Los scripts usan solo la biblioteca estándar de Python 3.
+
+```bash
+export SUPABASE_URL=https://<ref>.supabase.co
+export SUPABASE_SERVICE_ROLE_KEY=<service_role o sb_secret_...>   # Dashboard → Project Settings → API Keys
+```
+
+En PowerShell: `$env:SUPABASE_URL = "..."` y `$env:SUPABASE_SERVICE_ROLE_KEY = "..."`.
+
+### 5. Cargar los estudiantes
+
+En `aforo-vision`: `python -m enrollment.export_roster` genera `data/roster.json` (solo `personId` + `name`). Cópialo a `scripts/roster.json` y:
+
+```bash
+python scripts/seed_students.py            # o: python scripts/seed_students.py ruta/roster.json --course PILOTO-AFORO
+```
+
+Se puede correr varias veces: actualiza nombres sin tocar el estado `IN`/`OUT` y no duplica inscripciones.
+
+### 6. Crear la llave del salón
+
+```bash
+python scripts/create_device_key.py "Salón del piloto"
+```
+
+Muestra la llave **una sola vez**. Ponla en el `.env` de `aforo-vision` (que está en `.gitignore`):
+
+```
+AFORO_BACKEND_URL=https://<ref>.supabase.co
+AFORO_SUPABASE_KEY=<publishable key>
+AFORO_DEVICE_KEY=<la llave>
+```
+
+Si la llave se filtra: `python scripts/create_device_key.py "Salón del piloto" --revoke` y crea otra.
+
+### 7. Promover al primer administrador
+
+Toda cuenta nueva (correo o Google) entra como `viewer`. Regístrate en el frontend y, en **Dashboard → SQL Editor**, conviértete en admin (solo esta vez; después los roles se cambian desde la app con `set_user_role`):
+
+```sql
+update public.user_roles
+   set role_id = (select id from public.roles where code = 'admin')
+ where user_id = (select id from auth.users where email = 'tu-correo@ejemplo.com');
+```
+
+### 8. Ajustes del dashboard (no son SQL)
+
+- **Authentication → Providers**: activar Google (Client ID/Secret de Google Cloud) si se usa login con Google.
+- **Authentication → URL Configuration**: *Site URL* y *Redirect URLs* del frontend (Amplify y `http://localhost:5173`).
+- **Authentication → Attack Protection**: activar *leaked password protection* (requiere plan Pro; en Free queda pendiente) y dejar la longitud mínima de contraseña en al menos 8.
+
+### Reiniciar el piloto
+
+Después del ensayo y antes del día real:
+
+```bash
+python scripts/reset_pilot_supabase.py     # pide escribir BORRAR
+```
+
+Borra eventos, asistencia y alertas; pone el aforo en 0 y a todos en `OUT`. Conserva estudiantes, usuarios, sesiones y la auditoría.
+
+## Contrato con los otros repos
+
+| Quién | Cómo | Qué |
+|---|---|---|
+| `aforo-vision` | `POST /rest/v1/rpc/ingest_event` con `{"p_event": {...}}` y headers `apikey` + `X-Device-Key` | Mismo evento de v1; responde `200 {"eventId", "duplicate"}`, `400` evento inválido, `403` llave inválida, `429` más de 120 peticiones/min |
+| `aforo-vision` | `POST /rest/v1/rpc/camera_heartbeat` con `{"p_camera_code", "p_online"}` | Estado de la cámara y alertas `camera_offline` |
+| `aforo-frontend` | `supabase-js` con el JWT del usuario | Lecturas filtradas por RLS, Realtime de `events`, `classrooms`, `cameras`, `alerts`; RPCs `set_user_role`, `set_user_active`, `log_access` |
+
+Cualquier cambio de columnas en `events`, `students` o `classrooms` se avisa a `aforo-vision`, `aforo-frontend` y `aforo-backend` (AGENTS.md, regla 4).
+
+## Legado v1 (DynamoDB)
+
+Se retira en la task 10. Despliegue (Git Bash, AWS CLI configurado en `us-east-1`):
 
 ```bash
 NOTIFICATION_EMAIL=tu-correo@ejemplo.com ./scripts/deploy.sh
 ```
 
-El script despliega dos stacks:
-
-| Stack | Plantilla | Qué crea |
-|---|---|---|
-| `aforo-budget` | `infra/budget.yaml` | Alerta mensual de AWS Budgets que avisa al correo si el gasto real (sin descontar créditos) supera 1 USD |
-| `aforo-db` | `infra/dynamodb.yaml` | Tabla `AforoPilot` (5 RCU / 5 WCU, dentro del Always Free) y los exports `AforoPilotTableName` y `AforoPilotTableArn` |
-
-`NOTIFICATION_EMAIL` es obligatoria y se pasa siempre por variable: el repositorio es público y el correo no debe quedar versionado. Variables opcionales: `STACK_NAME`, `BUDGET_STACK_NAME` y `REGION` (ver el encabezado de `scripts/deploy.sh`).
-
-El script se puede volver a correr después de cambiar una plantilla: CloudFormation solo aplica las diferencias, y si no hay cambios termina sin error.
-
-### 3. Verificar
-
-Al terminar, el script imprime los outputs del stack de la tabla. También puedes comprobarlo a mano:
-
-```bash
-# La tabla existe y está activa
-aws dynamodb describe-table --table-name AforoPilot --region us-east-1 \
-  --query "Table.[TableStatus, ProvisionedThroughput.ReadCapacityUnits, ProvisionedThroughput.WriteCapacityUnits]"
-
-# Los exports que usa aforo-backend
-aws cloudformation list-exports --region us-east-1 \
-  --query "Exports[?starts_with(Name, 'AforoPilot')].[Name, Value]" --output table
-
-# La alerta de presupuesto
-aws budgets describe-budgets --account-id "$(aws sts get-caller-identity --query Account --output text)" \
-  --query "Budgets[?BudgetName=='aforo-monthly-budget'].[BudgetName, BudgetLimit.Amount]"
-```
-
-En la consola: **DynamoDB → Tables** debe mostrar `AforoPilot`, **CloudFormation → Exports** los dos exports y **Billing → Budgets** el presupuesto `aforo-monthly-budget`.
-
-### Borrar los stacks
-
-La tabla tiene `DeletionPolicy: Retain`: si borras el stack `aforo-db`, la tabla **y los datos del piloto se conservan**. Borrar la tabla es una decisión aparte y manual. Mientras `aforo-backend` importe los exports, CloudFormation no permite borrar el stack `aforo-db`.
+Crea el stack `aforo-budget` (alerta de AWS Budgets a partir de 1 USD, que **se conserva** después de retirar v1) y el stack `aforo-db` (tabla `AforoPilot`, 5 RCU / 5 WCU, con `DeletionPolicy: Retain` y los exports `AforoPilotTableName` / `AforoPilotTableArn`). Scripts v1: `seed_people.py` y `reset_pilot.py`.
