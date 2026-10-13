@@ -101,8 +101,8 @@ Las tareas v1 que la v2 reemplaza quedan marcadas con ~~tachado~~ y una nota; no
 - [x] **8.5** `docs: rewrite readme for supabase` — Crear proyecto, aplicar migraciones (`supabase db push`), cargar estudiantes, crear la llave del salón, promover al primer admin.
 
 ### Task 9 — Retención de datos **(Prioridad 2)**
-- [ ] **9.1** `feat(db): purge old events with pg cron` — Job diario de `pg_cron` que borra eventos y asistencia con más de N días (mínima retención, Ley 1581). Reemplaza la task 5.1.
-- [ ] **9.2** `feat(db): add daily summary view` — Vista `daily_occupancy_summary` (entradas, salidas, % identificado por rostro, pico de aforo por día) para las gráficas del frontend.
+- [x] **9.1** `feat(db): purge old events with pg cron` — Job diario de `pg_cron` que borra eventos y asistencia con más de N días (mínima retención, Ley 1581). Reemplaza la task 5.1.
+- [x] **9.2** `feat(db): add daily summary view` — Vista `daily_occupancy_summary` (entradas, salidas, % identificado por rostro, pico de aforo por día) para las gráficas del frontend.
 
 ### Task 10 — Retirar DynamoDB **(Prioridad 3)**
 > Depende de: `aforo-vision` task 14 y `aforo-frontend` task 16 funcionando contra Supabase.
