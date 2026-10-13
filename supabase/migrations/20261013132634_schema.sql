@@ -1,8 +1,18 @@
 -- Esquema relacional del sistema de aforo (PostgreSQL en Supabase).
 -- 13 tablas en "public" + 1 tabla interna en "private" (llaves de dispositivo, nunca expuesta por la API).
 -- Zona horaria de negocio: America/Bogota. Todas las fechas se guardan como timestamptz (UTC).
+-- Seguridad desde el primer momento: RLS activado en todas las tablas y sin permisos para anon/authenticated.
+-- Los permisos y políticas por rol se agregan en la migración rls_role_policies.
+
+create extension if not exists pgcrypto with schema extensions;
 
 create schema if not exists private;
+revoke all on schema private from public;
+
+-- Ninguna tabla, secuencia ni función nueva de public queda abierta a anon por defecto.
+alter default privileges for role postgres in schema public revoke all on tables    from anon;
+alter default privileges for role postgres in schema public revoke all on sequences from anon;
+alter default privileges for role postgres in schema public revoke all on functions from anon;
 
 -- ---------------------------------------------------------------------------
 -- Usuarios y permisos
@@ -17,11 +27,12 @@ create table public.roles (
 );
 
 -- Perfil de cada cuenta de Supabase Auth (correo/contraseña o Google). Se crea solo al registrarse.
+-- Las contraseñas las guarda únicamente Supabase Auth (bcrypt en auth.users): nunca aquí.
 create table public.profiles (
   id         uuid primary key references auth.users (id) on delete cascade,
-  email      text not null,
-  full_name  text,
-  avatar_url text,
+  email      text,
+  full_name  text check (char_length(full_name) <= 120),
+  avatar_url text check (char_length(avatar_url) <= 500),
   is_active  boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -81,7 +92,7 @@ create table public.cameras (
 -- Aquí NO hay datos biométricos: los embeddings nunca salen del nodo de visión.
 create table public.students (
   id            uuid primary key default gen_random_uuid(),
-  full_name     text not null,
+  full_name     text not null check (char_length(full_name) between 1 and 120),
   student_code  text unique,
   email         text,
   is_active     boolean not null default true,
@@ -107,7 +118,7 @@ create table public.class_sessions (
   starts_at    timestamptz not null,
   ends_at      timestamptz not null,
   status       text not null default 'scheduled' check (status in ('scheduled', 'cancelled')),
-  created_by   uuid references public.profiles (id) on delete set null,
+  created_by   uuid default auth.uid() references public.profiles (id) on delete set null,
   created_at   timestamptz not null default now(),
   updated_at   timestamptz not null default now(),
   check (ends_at > starts_at)
@@ -138,6 +149,7 @@ create table public.attendance (
   student_id     uuid not null references public.students (id) on delete cascade,
   first_entry_at timestamptz,
   last_exit_at   timestamptz,
+  last_event_at  timestamptz not null,   -- hora del evento más reciente (para eventos que llegan en desorden)
   status         text not null default 'present' check (status in ('present', 'left')),
   updated_at     timestamptz not null default now(),
   primary key (session_id, student_id)
@@ -152,7 +164,8 @@ create table public.alerts (
   message      text not null,
   created_at   timestamptz not null default now(),
   resolved_at  timestamptz,
-  resolved_by  uuid references public.profiles (id) on delete set null
+  resolved_by  uuid references public.profiles (id) on delete set null,
+  check (type <> 'camera_offline' or camera_id is not null)
 );
 
 -- Quién hizo qué: cambios en tablas (triggers) y accesos a vistas sensibles (RPC log_access).
@@ -177,7 +190,7 @@ create table private.device_keys (
   id           uuid primary key default gen_random_uuid(),
   classroom_id uuid not null references public.classrooms (id) on delete cascade,
   label        text not null,
-  key_hash     text not null unique,
+  key_hash     text not null unique check (key_hash ~ '^[0-9a-f]{64}$'),
   window_start timestamptz not null default now(),
   window_count integer not null default 0,
   last_used_at timestamptz,
@@ -190,6 +203,7 @@ create table private.device_keys (
 -- ---------------------------------------------------------------------------
 
 create index events_classroom_occurred_idx on public.events (classroom_id, occurred_at desc);
+create index events_occurred_idx           on public.events (occurred_at);
 create index events_session_idx            on public.events (session_id);
 create index events_student_idx            on public.events (student_id, occurred_at desc);
 create index events_camera_outside_idx     on public.events (camera_outside_id);
@@ -198,7 +212,7 @@ create index class_sessions_room_time_idx  on public.class_sessions (classroom_i
 create index class_sessions_course_idx     on public.class_sessions (course_id);
 create index class_sessions_created_by_idx on public.class_sessions (created_by);
 create index attendance_student_idx        on public.attendance (student_id);
-create index alerts_open_idx               on public.alerts (classroom_id, created_at desc) where resolved_at is null;
+create index alerts_classroom_created_idx  on public.alerts (classroom_id, created_at desc);
 create index alerts_camera_idx             on public.alerts (camera_id);
 create index alerts_resolved_by_idx        on public.alerts (resolved_by);
 create index audit_log_created_idx         on public.audit_log (created_at desc);
@@ -207,3 +221,32 @@ create index user_roles_role_idx           on public.user_roles (role_id);
 create index user_roles_granted_by_idx     on public.user_roles (granted_by);
 create index course_students_student_idx   on public.course_students (student_id);
 create index device_keys_classroom_idx     on private.device_keys (classroom_id);
+
+-- Como mucho una alerta abierta de cada tipo: evita duplicados aunque lleguen eventos simultáneos.
+create unique index alerts_open_capacity_uidx on public.alerts (classroom_id)
+  where type = 'capacity_exceeded' and resolved_at is null;
+create unique index alerts_open_camera_uidx on public.alerts (camera_id)
+  where type = 'camera_offline' and resolved_at is null;
+
+-- ---------------------------------------------------------------------------
+-- Cerrado por defecto: RLS activado y sin permisos hasta la migración de políticas
+-- ---------------------------------------------------------------------------
+
+alter table public.roles           enable row level security;
+alter table public.profiles        enable row level security;
+alter table public.user_roles      enable row level security;
+alter table public.courses         enable row level security;
+alter table public.classrooms      enable row level security;
+alter table public.cameras         enable row level security;
+alter table public.students        enable row level security;
+alter table public.course_students enable row level security;
+alter table public.class_sessions  enable row level security;
+alter table public.events          enable row level security;
+alter table public.attendance      enable row level security;
+alter table public.alerts          enable row level security;
+alter table public.audit_log       enable row level security;
+alter table private.device_keys    enable row level security;
+
+revoke all on all tables    in schema public  from anon, authenticated;
+revoke all on all sequences in schema public  from anon, authenticated;
+revoke all on all tables    in schema private from public, anon, authenticated;

@@ -81,15 +81,15 @@ Las tareas v1 que la v2 reemplaza quedan marcadas con ~~tachado~~ y una nota; no
 > Ver `ARCHITECTURE.md` sección 7. Hay un **borrador sin probar** de las migraciones en `supabase/migrations/` (escrito el 8 oct 2026): las tasks 7.2-7.7 consisten en revisarlo, probarlo y commitearlo por partes.
 
 ### Task 7 — Proyecto y esquema **(Prioridad 1)**
-- [ ] **7.1** (sin commit) Crear el proyecto `aforo` en una cuenta de Supabase **del equipo** (las cuentas personales ya tienen sus 2 proyectos gratis), región `us-east-1`, e invitar a los demás con rol **Developer**. Guardar la URL del proyecto; la `service_role` key nunca va a git.
-- [ ] **7.2** `feat(db): add relational schema with 13 tables` — `supabase/migrations/..._schema.sql`: `roles`, `profiles`, `user_roles`, `courses`, `classrooms`, `cameras`, `students`, `course_students`, `class_sessions`, `events`, `attendance`, `alerts`, `audit_log` + `private.device_keys`, con llaves foráneas, `check` e índices.
-- [ ] **7.3** `feat(db): add occupancy attendance and alert triggers` — Trigger `apply_event`: aforo atómico (nunca < 0), `presence` del estudiante, fila de `attendance` de la sesión y alerta `capacity_exceeded`.
-- [ ] **7.4** `feat(db): add device ingest and heartbeat rpcs` — `ingest_event(p_event)` (llave `X-Device-Key` + límite de 120 peticiones/min, mismo contrato de evento que v1, idempotente por `eventId`) y `camera_heartbeat(code, online)` con alertas `camera_offline`.
-- [ ] **7.5** `feat(auth): create profile and viewer role on sign up` — Trigger sobre `auth.users`; RPCs de admin `set_user_role` y `set_user_active`.
-- [ ] **7.6** `feat(db): add audit log triggers and log access rpc` — `audit_change` en las tablas de catálogo y `log_access` para LOGIN/VIEW/EXPORT desde el frontend.
-- [ ] **7.7** `feat(security): enable rls with role policies` — RLS en todas las tablas, `anon` sin acceso a tablas, permisos por rol (`viewer` sin nombres de estudiantes). Realtime para `events`, `classrooms`, `cameras`, `alerts`.
-- [ ] **7.8** `feat(db): seed roles course classroom and cameras` — Los 3 roles, 1 curso, 1 salón (aforo máximo configurable) y sus 2 cámaras (`camera-outside`, `camera-inside`).
-- [ ] **7.9** (sin commit) Aplicar las migraciones al proyecto y correr los advisors de seguridad y rendimiento de Supabase: cero errores.
+- [x] **7.1** (sin commit) Crear el proyecto `aforo` en una cuenta de Supabase **del equipo** (las cuentas personales ya tienen sus 2 proyectos gratis), región `us-east-1`, e invitar a los demás con rol **Developer**. Guardar la URL del proyecto; la `service_role` key nunca va a git.
+- [x] **7.2** `feat(db): add relational schema with 13 tables` — `supabase/migrations/..._schema.sql`: `roles`, `profiles`, `user_roles`, `courses`, `classrooms`, `cameras`, `students`, `course_students`, `class_sessions`, `events`, `attendance`, `alerts`, `audit_log` + `private.device_keys`, con llaves foráneas, `check` e índices.
+- [x] **7.3** `feat(db): add occupancy attendance and alert triggers` — Trigger `apply_event`: aforo atómico (nunca < 0), `presence` del estudiante, fila de `attendance` de la sesión y alerta `capacity_exceeded`.
+- [x] **7.4** `feat(db): add device ingest and heartbeat rpcs` — `ingest_event(p_event)` (llave `X-Device-Key` + límite de 120 peticiones/min, mismo contrato de evento que v1, idempotente por `eventId`) y `camera_heartbeat(code, online)` con alertas `camera_offline`.
+- [x] **7.5** `feat(auth): create profile and viewer role on sign up` — Trigger sobre `auth.users`; RPCs de admin `set_user_role` y `set_user_active`.
+- [x] **7.6** `feat(db): add audit log triggers and log access rpc` — `audit_change` en las tablas de catálogo y `log_access` para LOGIN/VIEW/EXPORT desde el frontend.
+- [x] **7.7** `feat(security): enable rls with role policies` — RLS en todas las tablas, `anon` sin acceso a tablas, permisos por rol (`viewer` sin nombres de estudiantes). Realtime para `events`, `classrooms`, `cameras`, `alerts`.
+- [x] **7.8** `feat(db): seed roles course classroom and cameras` — Los 3 roles, 1 curso, 1 salón (aforo máximo configurable) y sus 2 cámaras (`camera-outside`, `camera-inside`).
+- [x] **7.9** (sin commit) Aplicar las migraciones al proyecto y correr los advisors de seguridad y rendimiento de Supabase: cero errores.
 
 ### Task 8 — Datos, llaves y pruebas **(Prioridad 1)**
 > Depende de: task 7.
