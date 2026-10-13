@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(28);
+select plan(33);
 
 -- ---------------------------------------------------------------------------
 -- Datos de prueba: un salón con aforo 1, sus cámaras, una llave, un estudiante y cuatro cuentas
@@ -139,6 +139,30 @@ select is((select count(*)::int from public.alerts a join public.cameras c on c.
           1, 'se abre una alerta camera_offline por la cámara sin latido');
 select ok(exists (select 1 from cron.job where jobname = 'mark-stale-cameras-offline'),
           'el job mark-stale-cameras-offline está programado');
+
+-- ---------------------------------------------------------------------------
+-- Auditoría de cambios de rol y de activación de cuentas
+-- ---------------------------------------------------------------------------
+
+set local role authenticated;
+set local request.jwt.claims = '{"sub":"00000000-0000-4000-8000-0000000000a1","role":"authenticated"}';
+select lives_ok($$select public.set_user_role('00000000-0000-4000-8000-0000000000a3', 'teacher')$$,
+                'admin cambia el rol de otra cuenta');
+select lives_ok($$select public.set_user_active('00000000-0000-4000-8000-0000000000a3', false)$$,
+                'admin desactiva otra cuenta');
+reset role;
+select is((select count(*)::int from public.audit_log
+            where action = 'ROLE_GRANT' and record_id = '00000000-0000-4000-8000-0000000000a3'
+              and actor_id = '00000000-0000-4000-8000-0000000000a1' and new_data ->> 'role' = 'teacher'),
+          1, 'el cambio de rol queda en audit_log como ROLE_GRANT con el actor y el código del rol');
+select is((select count(*)::int from public.audit_log
+            where action = 'ROLE_REVOKE' and record_id = '00000000-0000-4000-8000-0000000000a3'
+              and old_data ->> 'role' = 'viewer'),
+          1, 'el rol anterior queda en audit_log como ROLE_REVOKE');
+select is((select count(*)::int from public.audit_log
+            where action = 'ACCOUNT_DEACTIVATE' and record_id = '00000000-0000-4000-8000-0000000000a3'
+              and actor_id = '00000000-0000-4000-8000-0000000000a1'),
+          1, 'la desactivación queda en audit_log como ACCOUNT_DEACTIVATE');
 
 select * from finish();
 rollback;
