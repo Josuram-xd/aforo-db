@@ -94,7 +94,7 @@ Las tareas v1 que la v2 reemplaza quedan marcadas con ~~tachado~~ y una nota; no
 ### Task 8 — Datos, llaves y pruebas **(Prioridad 1)**
 > Depende de: task 7.
 
-- [ ] **8.1** `feat(scripts): add seed students script` — `scripts/seed_students.py`: carga `roster.json` (de `aforo-vision` task 5.2) en `students` y `course_students`, conservando el `personId` como `id`. Usa la `service_role` key desde variable de entorno. Reemplaza a `seed_people.py`.
+- [x] **8.1** `feat(scripts): add seed students script` — `scripts/seed_students.py`: carga `roster.json` (de `aforo-vision` task 5.2) en `students` y `course_students`, conservando el `personId` como `id`. Usa la `service_role` key desde variable de entorno. Reemplaza a `seed_people.py`.
 - [ ] **8.2** `feat(scripts): add create device key script` — `scripts/create_device_key.py <salón>`: genera una llave aleatoria, guarda solo su hash SHA-256 en `private.device_keys` y la muestra **una sola vez** para configurarla en `aforo-vision`. Opción `--revoke`.
 - [ ] **8.3** `feat(scripts): port reset pilot script to supabase` — Borra eventos, asistencia y alertas de prueba, pone el aforo en 0 y a todos en `OUT`. Pide escribir `BORRAR`.
 - [ ] **8.4** `test(db): add pgtap tests for rls and triggers` — `supabase/tests/`: `viewer` no ve estudiantes, `anon` no ve nada, `ingest_event` rechaza llave inválida y no duplica, el aforo no baja de 0, la alerta de aforo se abre y se cierra. Se corren con `supabase test db`.
