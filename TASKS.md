@@ -89,7 +89,7 @@ Las tareas v1 que la v2 reemplaza quedan marcadas con ~~tachado~~ y una nota; no
 - [x] **7.6** `feat(db): add audit log triggers and log access rpc` — `audit_change` en las tablas de catálogo y `log_access` para LOGIN/VIEW/EXPORT desde el frontend.
 - [x] **7.7** `feat(security): enable rls with role policies` — RLS en todas las tablas, `anon` sin acceso a tablas, permisos por rol (`viewer` sin nombres de estudiantes). Realtime para `events`, `classrooms`, `cameras`, `alerts`.
 - [x] **7.8** `feat(db): seed roles course classroom and cameras` — Los 3 roles, 1 curso, 1 salón (aforo máximo configurable) y sus 2 cámaras (`camera-outside`, `camera-inside`).
-- [ ] **7.9** (sin commit) Aplicar las migraciones al proyecto y correr los advisors de seguridad y rendimiento de Supabase: cero errores.
+- [x] **7.9** (sin commit) Aplicar las migraciones al proyecto y correr los advisors de seguridad y rendimiento de Supabase: cero errores.
 
 ### Task 8 — Datos, llaves y pruebas **(Prioridad 1)**
 > Depende de: task 7.
