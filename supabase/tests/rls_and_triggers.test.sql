@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(33);
+select plan(36);
 
 -- ---------------------------------------------------------------------------
 -- Datos de prueba: un salón con aforo 1, sus cámaras, una llave, un estudiante y cuatro cuentas
@@ -54,31 +54,40 @@ select throws_ok($$select public.set_user_role('00000000-0000-4000-8000-00000000
 -- ---------------------------------------------------------------------------
 
 set local request.headers = '{}';
-select throws_ok($$select public.ingest_event('{"eventId":"11111111-1111-4111-8111-111111111111","direction":"ENTRY","method":"BODY_ONLY","confidence":0.5,"timestamp":"2026-10-13T10:00:00Z"}')$$,
+select throws_ok($$select public.ingest_event(jsonb_set('{"eventId":"11111111-1111-4111-8111-111111111111","direction":"ENTRY","method":"BODY_ONLY","confidence":0.5}'::jsonb, '{timestamp}', to_jsonb(date_trunc('hour', now()) - interval '1 hour' + interval '0 minutes')))$$,
                  '28000', null, 'ingest_event rechaza una petición sin X-Device-Key');
 
 set local request.headers = '{"x-device-key":"llave-falsa"}';
-select throws_ok($$select public.ingest_event('{"eventId":"11111111-1111-4111-8111-111111111111","direction":"ENTRY","method":"BODY_ONLY","confidence":0.5,"timestamp":"2026-10-13T10:00:00Z"}')$$,
+select throws_ok($$select public.ingest_event(jsonb_set('{"eventId":"11111111-1111-4111-8111-111111111111","direction":"ENTRY","method":"BODY_ONLY","confidence":0.5}'::jsonb, '{timestamp}', to_jsonb(date_trunc('hour', now()) - interval '1 hour' + interval '0 minutes')))$$,
                  '28000', null, 'ingest_event rechaza una llave inválida');
 
 set local request.headers = '{"x-device-key":"llave-de-prueba"}';
-select throws_ok($$select public.ingest_event('{"eventId":"11111111-1111-4111-8111-111111111111","direction":"SIDEWAYS","method":"BODY_ONLY","confidence":0.5,"timestamp":"2026-10-13T10:00:00Z"}')$$,
-                 '22023', null, 'ingest_event rechaza un evento con direction inválida');
+-- Los errores de validación responden 400 (response.status) sin excepción, para que la petición cuente en el límite.
+select is(public.ingest_event(jsonb_set('{"eventId":"11111111-1111-4111-8111-111111111111","direction":"SIDEWAYS","method":"BODY_ONLY","confidence":0.5}'::jsonb, '{timestamp}', to_jsonb(date_trunc('hour', now()) - interval '1 hour' + interval '0 minutes'))) ->> 'code',
+          '22023', 'ingest_event rechaza un evento con direction inválida');
+select is(current_setting('response.status', true), '400', 'el evento inválido responde HTTP 400');
+select is(public.ingest_event(jsonb_build_object('eventId', '44444444-4444-4444-8444-444444444444', 'direction', 'ENTRY',
+            'method', 'BODY_ONLY', 'confidence', 0.5, 'timestamp', now() - interval '31 days')) ->> 'code',
+          '22023', 'ingest_event rechaza eventos de hace más de 30 días');
+set local response.status = '200';
 
+-- Los eventos usan horas relativas a now() (ingest_event rechaza eventos de hace más de 30 días).
 -- Una salida con el salón vacío no deja el aforo en negativo.
-select is(public.ingest_event('{"eventId":"10000000-0000-4000-8000-000000000000","direction":"EXIT","method":"BODY_ONLY","confidence":0.5,"timestamp":"2026-10-13T09:59:00Z"}') ->> 'duplicate',
+select is(public.ingest_event(jsonb_set('{"eventId":"10000000-0000-4000-8000-000000000000","direction":"EXIT","method":"BODY_ONLY","confidence":0.5}'::jsonb, '{timestamp}', to_jsonb(date_trunc('hour', now()) - interval '1 hour' + interval '-1 minutes'))) ->> 'duplicate',
           'false', 'una salida con el salón vacío se registra');
 
-select is(public.ingest_event('{"eventId":"11111111-1111-4111-8111-111111111111","personId":"00000000-0000-4000-8000-0000000000b1","personName":"x","direction":"ENTRY","cameraOutsideId":"camera-outside","cameraInsideId":"camera-inside","method":"FACE","confidence":0.9,"timestamp":"2026-10-13T10:00:00Z"}') ->> 'duplicate',
+select is(public.ingest_event(jsonb_set('{"eventId":"11111111-1111-4111-8111-111111111111","personId":"00000000-0000-4000-8000-0000000000b1","personName":"x","direction":"ENTRY","cameraOutsideId":"camera-outside","cameraInsideId":"camera-inside","method":"FACE","confidence":0.9}'::jsonb, '{timestamp}', to_jsonb(date_trunc('hour', now()) - interval '1 hour' + interval '0 minutes'))) ->> 'duplicate',
           'false', 'el primer envío de un evento se registra');
-select is(public.ingest_event('{"eventId":"11111111-1111-4111-8111-111111111111","personId":"00000000-0000-4000-8000-0000000000b1","personName":"x","direction":"ENTRY","cameraOutsideId":"camera-outside","cameraInsideId":"camera-inside","method":"FACE","confidence":0.9,"timestamp":"2026-10-13T10:00:00Z"}') ->> 'duplicate',
+select is(public.ingest_event(jsonb_set('{"eventId":"11111111-1111-4111-8111-111111111111","personId":"00000000-0000-4000-8000-0000000000b1","personName":"x","direction":"ENTRY","cameraOutsideId":"camera-outside","cameraInsideId":"camera-inside","method":"FACE","confidence":0.9}'::jsonb, '{timestamp}', to_jsonb(date_trunc('hour', now()) - interval '1 hour' + interval '0 minutes'))) ->> 'duplicate',
           'true', 'un reintento del mismo eventId responde duplicate = true');
 
 -- Segunda entrada: 2 personas en un salón con aforo 1.
-select is(public.ingest_event('{"eventId":"22222222-2222-4222-8222-222222222222","direction":"ENTRY","method":"BODY_ONLY","confidence":0.6,"timestamp":"2026-10-13T10:01:00Z"}') ->> 'duplicate',
+select is(public.ingest_event(jsonb_set('{"eventId":"22222222-2222-4222-8222-222222222222","direction":"ENTRY","method":"BODY_ONLY","confidence":0.6}'::jsonb, '{timestamp}', to_jsonb(date_trunc('hour', now()) - interval '1 hour' + interval '1 minutes'))) ->> 'duplicate',
           'false', 'segunda entrada registrada');
 reset role;
 
+select is((select window_count from private.device_keys where classroom_id = '00000000-0000-4000-8000-0000000000c1'),
+          6, 'las peticiones inválidas también cuentan para el límite por minuto');
 select is((select count(*)::int from public.events where classroom_id = '00000000-0000-4000-8000-0000000000c1'),
           3, 'el reintento no duplicó el evento');
 select is((select current_occupancy from public.classrooms where id = '00000000-0000-4000-8000-0000000000c1'),
@@ -91,7 +100,7 @@ select is((select count(*)::int from public.alerts
 
 set local role anon;
 set local request.headers = '{"x-device-key":"llave-de-prueba"}';
-select lives_ok($$select public.ingest_event('{"eventId":"33333333-3333-4333-8333-333333333333","direction":"EXIT","method":"BODY_ONLY","confidence":0.6,"timestamp":"2026-10-13T10:02:00Z"}')$$,
+select lives_ok($$select public.ingest_event(jsonb_set('{"eventId":"33333333-3333-4333-8333-333333333333","direction":"EXIT","method":"BODY_ONLY","confidence":0.6}'::jsonb, '{timestamp}', to_jsonb(date_trunc('hour', now()) - interval '1 hour' + interval '2 minutes')))$$,
                 'una salida se registra');
 reset role;
 select is((select count(*)::int from public.alerts
