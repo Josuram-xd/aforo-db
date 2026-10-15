@@ -143,7 +143,7 @@ Borra eventos, asistencia y alertas; pone el aforo en 0 y a todos en `OUT`. Cons
 |---|---|---|
 | `aforo-vision` | `POST /rest/v1/rpc/ingest_event` con `{"p_event": {...}}` y headers `apikey` + `X-Device-Key` | Mismo evento de v1; responde `200 {"eventId", "duplicate"}`, `400` evento inválido, `403` llave inválida, `429` más de 120 peticiones/min |
 | `aforo-vision` | `POST /rest/v1/rpc/camera_heartbeat` con `{"p_camera_code", "p_online"}` | Estado de la cámara y alertas `camera_offline` |
-| `aforo-frontend` | `supabase-js` con el JWT del usuario | Lecturas filtradas por RLS, Realtime de `events`, `classrooms`, `cameras`, `alerts`; RPCs `set_user_role`, `set_user_active`, `log_access` |
+| `aforo-frontend` | `supabase-js` con el JWT del usuario | Lecturas filtradas por RLS, Realtime de `events`, `classrooms`, `cameras`, `alerts`; RPCs `set_user_role`, `set_user_active`, `delete_user`, `delete_student`, `log_access` |
 
 Cualquier cambio de columnas en `events`, `students` o `classrooms` se avisa a `aforo-vision`, `aforo-frontend` y `aforo-backend` (AGENTS.md, regla 4).
 
