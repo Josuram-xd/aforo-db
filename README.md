@@ -12,12 +12,31 @@ Este repositorio **no** contiene lógica de aplicación: solo el esquema, sus fu
 ```
 aforo-db/
 ├── supabase/
-│   ├── migrations/   # esquema, triggers, RPCs, RLS y datos base (en orden de aplicación)
-│   └── tests/        # pruebas pgTAP (supabase test db)
-├── scripts/          # cargar estudiantes, llaves de dispositivo, reiniciar el piloto (+ scripts v1)
-├── infra/            # v1: plantillas CloudFormation (tabla DynamoDB, alerta de presupuesto)
-├── PRD.md · ARCHITECTURE.md (sección 7 = v2) · AGENTS.md · TASKS.md
+│   ├── migrations/                 # se aplican en orden por fecha; nunca se editan las ya aplicadas
+│   │   ├── ..._schema.sql                          # las 13 tablas, con RLS activado
+│   │   ├── ..._occupancy_attendance_alert_triggers  # aforo, asistencia y alertas automáticas
+│   │   ├── ..._device_ingest_heartbeat_rpcs         # ingest_event y camera_heartbeat (aforo-vision)
+│   │   ├── ..._auth_profiles_and_role_rpcs          # perfil + rol viewer al registrarse, set_user_role...
+│   │   ├── ..._audit_log_*, ..._audit_role_*        # auditoría de cambios y accesos
+│   │   ├── ..._rls_role_policies                    # qué ve cada rol
+│   │   ├── ..._seed_catalogs                        # roles, curso, salón y cámaras del piloto
+│   │   ├── ..._device_key_admin_rpcs, ..._reset_pilot_rpc   # RPCs que usan los scripts
+│   │   ├── ..._purge_old_events_cron, ..._mark_stale_cameras_offline_cron   # tareas programadas (pg_cron)
+│   │   └── ..._daily_occupancy_summary_view, ..._enforce_actor_columns, ...
+│   └── tests/rls_and_triggers.test.sql   # pruebas pgTAP (supabase test db)
+├── scripts/
+│   ├── seed_students.py            # carga el roster de aforo-vision como estudiantes
+│   ├── create_device_key.py        # crea o revoca la llave del salón
+│   ├── reset_pilot_supabase.py     # limpia los datos del ensayo
+│   ├── supabase_admin.py           # cliente compartido de los scripts
+│   ├── roster.example.json         # plantilla del roster (sin datos reales)
+│   ├── deploy.sh                   # despliega infra/ (tabla v1 + alerta de presupuesto, que se conserva)
+│   └── seed_people.py · reset_pilot.py   # v1 (DynamoDB), se quitan en la task 10.3
+├── infra/                          # v1: CloudFormation (tabla DynamoDB y alerta de presupuesto)
+└── PRD.md · ARCHITECTURE.md (sección 7 = v2) · AGENTS.md · TASKS.md
 ```
+
+**Tablas:** `roles`, `profiles`, `user_roles` (usuarios y permisos) · `courses`, `classrooms`, `cameras`, `students`, `course_students`, `class_sessions` (el curso y el salón) · `events`, `attendance`, `alerts` (lo que pasa en la puerta) · `audit_log` (quién hizo qué).
 
 ## Privacidad y seguridad
 
