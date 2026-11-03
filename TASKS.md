@@ -124,3 +124,9 @@ Las tareas v1 que la v2 reemplaza quedan marcadas con ~~tachado~~ y una nota; no
 
 - [x] **12.1** `feat(db): let teachers manage students and add enrollment captures` — `teacher` crea/edita cursos, estudiantes e inscripciones y elimina estudiantes (`delete_student`); `students.photo_path` + bucket privado `student-photos`; `students.enrollment_status`; RPCs `submit_enrollment` (teacher/admin), `pending_enrollments` y `complete_enrollment` (nodo de visión, llave de dispositivo). Pruebas en `supabase/tests/teacher_enrollment.test.sql`.
 - [ ] **12.2** (sin commit) Aplicar la migración en Supabase, correr `supabase test db` y los advisors.
+
+### Task 13 — Validación en el servidor **(Prioridad 1)**
+> Revisión de seguridad del 2026-11-02: RLS permite escribir directo con la publishable key, así que las reglas del formulario también deben vivir en la base.
+
+- [x] **13.1** `feat(db): add server side validation constraints` — `CHECK` (NOT VALID) en estudiantes, cursos, salones, cámaras y sesiones: largos, sin caracteres de control ni `<`/`>`, correo con formato, y la foto solo dentro de la carpeta del propio estudiante. Pruebas en `teacher_enrollment.test.sql`.
+- [ ] **13.2** (sin commit) Aplicar, correr `supabase test db` y luego `alter table ... validate constraint` si no hay filas viejas que las rompan.
