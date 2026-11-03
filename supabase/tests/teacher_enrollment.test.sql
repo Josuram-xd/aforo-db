@@ -5,7 +5,7 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set local search_path = public, extensions;
 
-select plan(12);
+select plan(15);
 
 insert into auth.users (id, instance_id, aud, role, email, raw_user_meta_data, created_at, updated_at) values
   ('00000000-0000-4000-8000-0000000000a2', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated', 'teacher@test.local', '{}', now(), now()),
@@ -33,6 +33,15 @@ select throws_ok($$select public.submit_enrollment('00000000-0000-4000-8000-0000
 select lives_ok($$select public.submit_enrollment('00000000-0000-4000-8000-0000000000b1',
                     array[(select b64 from fake_jpeg), (select b64 from fake_jpeg), (select b64 from fake_jpeg)])$$,
                 'teacher envía 3 fotos');
+
+-- Validación en el servidor (task 13): aunque se salte el frontend, los datos malos no entran.
+select throws_ok($$insert into public.students (full_name) values ('<script>alert(1)</script>')$$,
+                 '23514', null, 'el nombre no admite < ni >');
+select throws_ok($$insert into public.students (full_name, email) values ('Bea Correo', 'sin-arroba')$$,
+                 '23514', null, 'el correo debe tener formato válido');
+select throws_ok($$insert into public.students (id, full_name, photo_path)
+                   values ('00000000-0000-4000-8000-0000000000b2', 'Cris Foto', '../otro/1.jpg')$$,
+                 '23514', null, 'la foto solo puede estar en la carpeta del propio estudiante');
 
 set local request.jwt.claims = '{"sub":"00000000-0000-4000-8000-0000000000a3","role":"authenticated"}';
 select throws_ok($$select public.submit_enrollment('00000000-0000-4000-8000-0000000000b1',
