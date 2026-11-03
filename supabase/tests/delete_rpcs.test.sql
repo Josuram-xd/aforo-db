@@ -59,14 +59,14 @@ select throws_ok($$select public.delete_user('00000000-0000-4000-8000-0000000000
 
 set local role authenticated;
 set local request.jwt.claims = '{"sub":"00000000-0000-4000-8000-0000000000a2","role":"authenticated"}';
-select throws_ok($$select public.delete_student('00000000-0000-4000-8000-0000000000b1')$$,
-                 '42501', null, 'teacher no puede eliminar estudiantes');
 select throws_ok($$select public.delete_user('00000000-0000-4000-8000-0000000000a3')$$,
                  '42501', null, 'teacher no puede eliminar cuentas');
 
 set local request.jwt.claims = '{"sub":"00000000-0000-4000-8000-0000000000a3","role":"authenticated"}';
 select throws_ok($$select public.delete_user('00000000-0000-4000-8000-0000000000a2')$$,
                  '42501', null, 'viewer no puede eliminar cuentas');
+select throws_ok($$select public.delete_student('00000000-0000-4000-8000-0000000000b1')$$,
+                 '42501', null, 'viewer no puede eliminar estudiantes');
 
 set local request.jwt.claims = '{"sub":"00000000-0000-4000-8000-0000000000a1","role":"authenticated"}';
 select throws_ok($$delete from public.students where id = '00000000-0000-4000-8000-0000000000b1'$$,

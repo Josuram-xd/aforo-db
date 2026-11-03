@@ -118,3 +118,9 @@ Las tareas v1 que la v2 reemplaza quedan marcadas con ~~tachado~~ y una nota; no
 - [x] **11.2** `feat(db): add delete user rpc with audit redaction` — `public.delete_user(p_user_id)`: solo `admin` activo, nunca la propia cuenta. Borra la cuenta de `auth.users` (perfil, roles y sesiones en cascada) y quita `email`, `full_name` y `avatar_url` de su historial en `audit_log`, dejando una fila `ACCOUNT_DELETE` con el rol que tenía. Las acciones que hizo esa persona siguen en la auditoría, sin su nombre.
 - [x] **11.3** `test(db): cover delete rpcs and audit redaction` — pgTAP: `teacher`/`viewer`/`anon` no pueden borrar; admin no se borra a sí mismo; tras borrar no queda el nombre ni el correo en `audit_log`; los eventos del estudiante se conservan sin `student_id`; `DELETE` directo sobre `students` falla.
 - [ ] **11.4** (sin commit) Aplicar las migraciones en el proyecto de Supabase y correr los advisors.
+
+### Task 12 — Profesor gestiona estudiantes y registro biométrico **(Prioridad 1)**
+> Decisión del 2026-11-02: el profesor crea cursos y estudiantes desde la app, con foto opcional, y registra la biometría capturando fotos en el navegador. **Excepción a la regla 5 de `AGENTS.md`**: las fotos de rostro existen en la base solo de forma temporal (`private.enrollment_captures`) hasta que el nodo de visión calcula el embedding en local y las borra; los embeddings nunca llegan a la base.
+
+- [x] **12.1** `feat(db): let teachers manage students and add enrollment captures` — `teacher` crea/edita cursos, estudiantes e inscripciones y elimina estudiantes (`delete_student`); `students.photo_path` + bucket privado `student-photos`; `students.enrollment_status`; RPCs `submit_enrollment` (teacher/admin), `pending_enrollments` y `complete_enrollment` (nodo de visión, llave de dispositivo). Pruebas en `supabase/tests/teacher_enrollment.test.sql`.
+- [ ] **12.2** (sin commit) Aplicar la migración en Supabase, correr `supabase test db` y los advisors.
