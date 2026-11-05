@@ -137,6 +137,37 @@ python scripts/reset_pilot_supabase.py     # pide escribir BORRAR
 
 Borra eventos, asistencia y alertas; pone el aforo en 0 y a todos en `OUT`. Conserva estudiantes, usuarios, sesiones y la auditoría.
 
+## Estructuras de datos, GRASP y SOLID
+
+Esta sección describe lo que el esquema **ya hace** y dónde está en las migraciones. Cada afirmación se puede comprobar abriendo el archivo citado.
+
+### Estructuras de datos del esquema
+
+- **Índices (B-tree, el tipo por defecto de PostgreSQL).** Por ejemplo `events_classroom_occurred_idx on public.events (classroom_id, occurred_at desc)` en `supabase/migrations/20261013132634_schema.sql`: acelera "eventos de un salón, del más reciente al más antiguo". Hay más índices en el mismo archivo (por estudiante, por sesión, por fecha de auditoría). El índice único parcial `alerts_open_capacity_uidx` impide tener dos alertas de aforo abiertas en el mismo salón.
+- **Grafo de relaciones por claves foráneas.** Las 13 tablas de `public` se enlazan con `references` en `20261013132634_schema.sql`. Ejemplos: `events` apunta a `classrooms`, `class_sessions`, `students` y `cameras`; `course_students` une `courses` con `students`; `attendance` une `class_sessions` con `students`; `profiles` depende de `auth.users`. Los borrados siguen el grafo: `on delete cascade` (p. ej. `course_students`, `attendance`), `on delete set null` (p. ej. los eventos conservan su historial cuando se borra un estudiante) o `on delete restrict` (`user_roles.role_id`).
+- **Tabla de eventos como registro ordenado en el tiempo.** `public.events` guarda `occurred_at` (hora del evento) y `received_at` (hora de llegada). El job `purge-old-events` de pg_cron (`20261013134057_purge_old_events_cron.sql`) corre a diario y borra los eventos y la asistencia con más de 30 días mediante `private.purge_old_data(30)`.
+- **Cola de registro biométrico.** `private.enrollment_captures` funciona como cola: `pending_enrollments()` entrega hasta 3 estudiantes con `enrollment_status = 'pending'`, en orden de `enrollment_updated_at` (FIFO), y `complete_enrollment()` borra sus fotos al terminar (`20261102120000_teacher_manage_students_enrollment.sql`). La cola la consume el nodo de visión, no la app.
+
+### Estructuras del curso que no se aplican
+
+El esquema no implementa pilas, colas genéricas, listas enlazadas, árboles propios ni colas de prioridad. La base delega ese trabajo al motor de PostgreSQL (índices, orden y almacenamiento de tablas). Las únicas colas son la de registro biométrico de arriba, que es un flujo de negocio, no una estructura de datos general.
+
+### GRASP
+
+- **Experto (information expert).** La lógica de datos vive en la base. `private.has_any_role` (`20261013133014_auth_profiles_and_role_rpcs.sql`) decide los permisos a partir de `user_roles` y `profiles.is_active`, y lo usan las políticas RLS y las RPCs. El trigger `apply_event` sobre `events` (`20261013132715_occupancy_attendance_alert_triggers.sql`) actualiza aforo, asistencia y alertas. `private.audit_change` (`20261013133122_audit_log_triggers_and_log_access.sql`) escribe la auditoría.
+- **Indirección (indirection).** `public.delete_student` (`20261015140000_delete_student_rpc.sql`, reemplazada en `20261102120000_teacher_manage_students_enrollment.sql`) y `public.delete_user` (`20261015140100_delete_user_rpc.sql`) son las vías de borrado. El `DELETE` directo sobre `students` se retiró: la política y el permiso de `authenticated` se quitaron en `20261015140000`, y en `20261102120000` no se volvió a conceder. La cuenta se borra solo con `delete_user`, porque `authenticated` no tiene permisos sobre `auth.users`. Ambas funciones son `security definer` y redactan los datos personales de `audit_log`.
+- **Bajo acoplamiento (low coupling).** El esquema `private` guarda funciones, triggers y tablas internas (`device_keys`, `enrollment_captures`), con `revoke all ... from public` en `20261013132634_schema.sql`. Las tablas de `private` no tienen permisos para `anon` ni `authenticated`, y `authenticated` solo recibe `usage` y `execute` de `has_any_role` (`20261013133014_auth_profiles_and_role_rpcs.sql`). Las migraciones no añaden `private` a los esquemas expuestos por la API; esa lista vive en la configuración del proyecto de Supabase, que no está en este repo.
+- **Alta cohesión (high cohesion).** Cada migración agrupa una responsabilidad y su nombre la describe: `rls_role_policies`, `audit_log_triggers_and_log_access`, `purge_old_events_cron`, `delete_student_rpc`. Matiz honesto: algunas funciones se redefinen en migraciones posteriores (por ejemplo `ingest_event` en `20261013132827` y `20261013153232`, `audit_change` en `20261013133122` y `20261013140927`, `delete_student` en `20261015140000` y `20261102120000`). Las migraciones ya aplicadas no se editan, así que la versión vigente es la última.
+
+### SOLID (por analogía)
+
+Un esquema SQL no tiene clases ni interfaces, así que SOLID aplica solo por analogía:
+
+- **S (responsabilidad única):** una migración y una RPC por responsabilidad, por ejemplo `delete_student` solo borra estudiantes y `complete_enrollment` solo cierra un registro biométrico.
+- **O, L, I, D:** no aplican al esquema y no se documentan como cumplidos.
+
+El curso está en `C:\Users\amand\Documents\Estructura de datos`; el mapeo completo curso-Aforo está en el README de `aforo-vision`.
+
 ## Contrato con los otros repos
 
 | Quién | Cómo | Qué |
