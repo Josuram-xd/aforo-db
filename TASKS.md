@@ -124,3 +124,9 @@ Las tareas v1 que la v2 reemplaza quedan marcadas con ~~tachado~~ y una nota; no
 
 - [x] **12.1** `feat(db): let teachers manage students and add enrollment captures` — `teacher` crea/edita cursos, estudiantes e inscripciones y elimina estudiantes (`delete_student`); `students.photo_path` + bucket privado `student-photos`; `students.enrollment_status`; RPCs `submit_enrollment` (teacher/admin), `pending_enrollments` y `complete_enrollment` (nodo de visión, llave de dispositivo). Pruebas en `supabase/tests/teacher_enrollment.test.sql`.
 - [ ] **12.2** (sin commit) Aplicar la migración en Supabase, correr `supabase test db` y los advisors.
+
+### Task 14 — Conectar cámaras desde la web **(Prioridad 1)**
+> Decisión del 2026-11-12: la IP y la cuenta de cámara Tapo se registran en la web (admin); la clave se guarda cifrada en Supabase Vault y solo la lee el nodo de visión con la llave del salón.
+
+- [x] **14.1** `feat(db): add camera connections with vault-encrypted password` — `private.camera_connections` + RPCs `set_camera_connection`, `clear_camera_connection`, `camera_connections` (admin) y `camera_sources` (nodo de visión). Pruebas en `supabase/tests/camera_connections.test.sql`.
+- [ ] **14.2** (sin commit) Aplicar la migración en Supabase, correr `supabase test db` y los advisors.
