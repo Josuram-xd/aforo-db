@@ -97,6 +97,8 @@ aforo-db/
 
 `aforo-backend` is the only consumer of this table, via the AWS SDK (boto3), using the table name exported by this repo's IaC output. `aforo-vision` and `aforo-frontend` never talk to DynamoDB directly.
 
+**Note (v2):** camera and event data depend on the local vision node (`aforo-vision` ADR-008). Without an always-on machine on the cameras' network, `private.mark_stale_cameras_offline` marks cameras offline after 90 s without a heartbeat and opens `camera_offline` alerts.
+
 ## 7. Version 2 — PostgreSQL on Supabase (planned)
 
 ### 7.1 Why v2

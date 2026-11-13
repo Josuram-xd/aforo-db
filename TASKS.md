@@ -136,3 +136,8 @@ Las tareas v1 que la v2 reemplaza quedan marcadas con ~~tachado~~ y una nota; no
 
 - [x] **15.1** `feat(db): add on-demand camera snapshots` — `private.camera_snapshot_requests` y `private.camera_snapshots` (una foto por cámara) + RPCs `request_camera_snapshot` y `get_camera_snapshot` (admin) y `pending_snapshot_requests` y `submit_camera_snapshot` (nodo de visión). Purga cada 5 minutos con pg_cron. Pruebas en `supabase/tests/camera_snapshots.test.sql`.
 - [ ] **15.2** (sin commit) Aplicar la migración en Supabase, correr `supabase test db` y los advisors.
+
+### Task 16 — Limitación del nodo local **(Prioridad 1)**
+> Decisión del 2026-11-12 (dueño): los datos de cámaras y eventos dependen de un computador encendido con `aforo-vision` en la misma red que las cámaras. Sin él, las cámaras figuran sin conexión.
+
+- [x] **16.1** `docs: document the local-node limitation [16.1]` — Nota en `README.md`, limitación en `PRD.md` (sección 8) y nota en `ARCHITECTURE.md` (sección 6), con referencia a `aforo-vision` ADR-008 y al marcado offline tras 90 s.
