@@ -178,6 +178,8 @@ El curso está en la carpeta «Estructura de datos» del curso; el mapeo complet
 
 Cualquier cambio de columnas en `events`, `students` o `classrooms` se avisa a `aforo-vision`, `aforo-frontend` y `aforo-backend` (AGENTS.md, regla 4).
 
+**Nota de limitación:** los datos de cámaras y eventos dependen del nodo local de `aforo-vision`, que debe estar encendido y en la misma red que las cámaras. Sin él, las cámaras figuran sin conexión: la función `private.mark_stale_cameras_offline` las marca offline tras 90 s sin latido y abre la alerta `camera_offline`.
+
 ## Legado v1 (DynamoDB)
 
 Se retira en la task 10. Despliegue (Git Bash, AWS CLI configurado en `us-east-1`):

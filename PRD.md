@@ -59,4 +59,6 @@ Después de la primera entrega, el profe pidió un modelo de datos más completo
 
 **Restricciones v2:** plan gratis de Supabase en una cuenta del equipo; toda modificación como migración en `supabase/migrations/`.
 
+**Limitación v2 (2026-11-12):** los datos de cámaras y eventos dependen del nodo local de `aforo-vision` (un computador encendido en la misma red que las cámaras). Sin él, las cámaras figuran sin conexión tras 90 s sin latido.
+
 **Métricas de éxito v2:** los advisors de seguridad de Supabase sin errores; los tests de RLS en verde; el dashboard muestra un cambio de aforo en menos de 2 s después del evento.
