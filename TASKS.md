@@ -130,3 +130,9 @@ Las tareas v1 que la v2 reemplaza quedan marcadas con ~~tachado~~ y una nota; no
 
 - [x] **14.1** `feat(db): add camera connections with vault-encrypted password` — `private.camera_connections` + RPCs `set_camera_connection`, `clear_camera_connection`, `camera_connections` (admin) y `camera_sources` (nodo de visión). Pruebas en `supabase/tests/camera_connections.test.sql`.
 - [ ] **14.2** (sin commit) Aplicar la migración en Supabase, correr `supabase test db` y los advisors.
+
+### Task 15 — Foto fija de cámaras **(Prioridad 2)**
+> Decisión del 2026-11-12: el admin pide una foto fija de una cámara desde la web. El nodo de visión la captura y la entrega con su llave del salón; la imagen vive solo unos minutos en la base y cada vista queda en la auditoría.
+
+- [x] **15.1** `feat(db): add on-demand camera snapshots` — `private.camera_snapshot_requests` y `private.camera_snapshots` (una foto por cámara) + RPCs `request_camera_snapshot` y `get_camera_snapshot` (admin) y `pending_snapshot_requests` y `submit_camera_snapshot` (nodo de visión). Purga cada 5 minutos con pg_cron. Pruebas en `supabase/tests/camera_snapshots.test.sql`.
+- [ ] **15.2** (sin commit) Aplicar la migración en Supabase, correr `supabase test db` y los advisors.
