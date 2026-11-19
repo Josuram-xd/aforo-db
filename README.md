@@ -127,6 +127,18 @@ update public.user_roles
 - **Authentication → URL Configuration**: *Site URL* y *Redirect URLs* del frontend (Amplify y `http://localhost:5173`).
 - **Authentication → Attack Protection**: activar *leaked password protection* (requiere plan Pro; en Free queda pendiente) y dejar la longitud mínima de contraseña en al menos 8.
 
+### 9. Datos iniciales (curso TEST)
+
+`supabase/seed/demo_seed.sql` deja datos persistentes para la prueba en vivo. Se corre en el SQL editor de Supabase (o con un rol que salte RLS); es idempotente, así que repetirlo no duplica nada.
+
+| Qué | Contenido |
+|---|---|
+| Curso `TEST` | Solo los estudiantes reales Joseph Herrera y Juan Cuaran. Sesión de ensayo (2026-11-18) y sesión de la prueba en vivo (2026-11-19, 07:00-23:00). |
+| Curso `ED-2026-2` | 12 estudiantes ficticios (`DEMO-001`…`DEMO-012`), 5 clases y su historial de entradas/salidas y asistencia. |
+| Aforo | Los eventos van en pares ENTRY/EXIT, así que el aforo actual no cambia. |
+
+Las contraseñas de las cuentas de prueba no van en el repositorio.
+
 ### Reiniciar el piloto
 
 Después del ensayo y antes del día real:

@@ -141,3 +141,9 @@ Las tareas v1 que la v2 reemplaza quedan marcadas con ~~tachado~~ y una nota; no
 > Decisión del 2026-11-12 (dueño): los datos de cámaras y eventos dependen de un computador encendido con `aforo-vision` en la misma red que las cámaras. Sin él, las cámaras figuran sin conexión.
 
 - [x] **16.1** `docs: document the local-node limitation [16.1]` — Nota en `README.md`, limitación en `PRD.md` (sección 8) y nota en `ARCHITECTURE.md` (sección 6), con referencia a `aforo-vision` ADR-008 y al marcado offline tras 90 s.
+
+### Task 17 — Datos iniciales del curso TEST **(Prioridad 1)**
+> Decisión del 2026-11-19 (dueño): el caso de estudio se centra en la entrada y salida de los estudiantes de un curso. La base real lleva datos persistentes: curso `TEST` con los estudiantes reales y un curso de ejemplo con historial.
+
+- [x] **17.1** `feat(db): add idempotent demo seed with the TEST course [17.1]` — `supabase/seed/demo_seed.sql`: curso `TEST` (solo Joseph Herrera y Juan Cuaran) con un ensayo y la sesión de hoy; curso `ED-2026-2` con 12 estudiantes ficticios, 5 clases y eventos ENTRY/EXIT balanceados. Ids deterministas (md5) y `on conflict do nothing`.
+- [x] **17.2** `docs: explain how to load the demo seed [17.2]` — Sección en `README.md` con cómo correrlo y qué deja cargado.
