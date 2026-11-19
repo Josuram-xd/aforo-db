@@ -133,7 +133,7 @@ update public.user_roles
 
 | Qué | Contenido |
 |---|---|
-| Curso `TEST` | Solo los estudiantes reales Joseph Herrera y Juan Cuaran. Sesión de ensayo (2026-11-18) y sesión de la prueba en vivo (2026-11-19, 07:00-23:00). |
+| Curso `TEST` | Solo los estudiantes reales Joseph Herrera y Juan Cuaran. Únicamente la sesión de la prueba en vivo (2026-11-19, 07:00-23:00), sin historial inventado. |
 | Curso `ED-2026-2` | 12 estudiantes ficticios (`DEMO-001`…`DEMO-012`), 5 clases y su historial de entradas/salidas y asistencia. |
 | Aforo | Los eventos van en pares ENTRY/EXIT, así que el aforo actual no cambia. |
 

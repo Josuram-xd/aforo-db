@@ -147,3 +147,8 @@ Las tareas v1 que la v2 reemplaza quedan marcadas con ~~tachado~~ y una nota; no
 
 - [x] **17.1** `feat(db): add idempotent demo seed with the TEST course [17.1]` — `supabase/seed/demo_seed.sql`: curso `TEST` (solo Joseph Herrera y Juan Cuaran) con un ensayo y la sesión de hoy; curso `ED-2026-2` con 12 estudiantes ficticios, 5 clases y eventos ENTRY/EXIT balanceados. Ids deterministas (md5) y `on conflict do nothing`.
 - [x] **17.2** `docs: explain how to load the demo seed [17.2]` — Sección en `README.md` con cómo correrlo y qué deja cargado.
+
+### Task 18 — Curso TEST sin historial inventado **(Prioridad 1)**
+> Decisión del 2026-11-19 (dueño): el curso TEST solo debe tener lo que pase en la prueba en vivo con sus 2 estudiantes reales.
+
+- [x] **18.1** `fix(db): drop the fake rehearsal from the TEST course seed [18.1]` — Quitar la sesión "TEST – ensayo" y sus 4 eventos de `supabase/seed/demo_seed.sql` y actualizar `README.md`. En la base real se borraron la sesión, sus eventos y su asistencia.
