@@ -41,11 +41,8 @@ union all select test_course, cuaran_id from seed_ids where cuaran_id is not nul
 union all select ed_course, md5('student:' || n)::uuid from seed_ids, generate_series(1, 12) n
 on conflict do nothing;
 
--- Sesiones (America/Bogota = UTC-5). TEST: ayer 14:00-16:00 y hoy 07:00-23:00 para la prueba en vivo.
+-- Sesiones (America/Bogota = UTC-5). TEST: solo la sesión de hoy 07:00-23:00, sin historial previo.
 insert into public.class_sessions (id, course_id, classroom_id, title, starts_at, ends_at)
-select md5('session:TEST:2026-11-18')::uuid, test_course, classroom_id, 'TEST – ensayo',
-       '2026-11-18 14:00-05'::timestamptz, '2026-11-18 16:00-05'::timestamptz from seed_ids
-union all
 select md5('session:TEST:2026-11-19')::uuid, test_course, classroom_id, 'TEST – prueba en vivo',
        '2026-11-19 07:00-05'::timestamptz, '2026-11-19 23:00-05'::timestamptz from seed_ids
 union all
@@ -78,18 +75,6 @@ rows as (
   select md5('event:ED:' || d || ':anon:out')::uuid, md5('session:ED:' || d)::uuid, null, 'EXIT',
          (d || ' 09:10-05')::timestamptz
   from unnest(array['2026-11-13', '2026-11-17']) d
-  union all  -- ensayo de TEST con los dos estudiantes reales
-  select md5('event:TEST:joseph:in')::uuid, md5('session:TEST:2026-11-18')::uuid, joseph_id, 'ENTRY',
-         '2026-11-18 14:05-05'::timestamptz from seed_ids where joseph_id is not null
-  union all
-  select md5('event:TEST:cuaran:in')::uuid, md5('session:TEST:2026-11-18')::uuid, cuaran_id, 'ENTRY',
-         '2026-11-18 14:07-05'::timestamptz from seed_ids where cuaran_id is not null
-  union all
-  select md5('event:TEST:cuaran:out')::uuid, md5('session:TEST:2026-11-18')::uuid, cuaran_id, 'EXIT',
-         '2026-11-18 15:40-05'::timestamptz from seed_ids where cuaran_id is not null
-  union all
-  select md5('event:TEST:joseph:out')::uuid, md5('session:TEST:2026-11-18')::uuid, joseph_id, 'EXIT',
-         '2026-11-18 15:52-05'::timestamptz from seed_ids where joseph_id is not null
 )
 insert into public.events (id, classroom_id, session_id, student_id, direction, method, confidence,
                            camera_outside_id, camera_inside_id, occurred_at)
